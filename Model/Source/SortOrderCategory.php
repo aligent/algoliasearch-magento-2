@@ -2,8 +2,6 @@
 
 namespace Algolia\AlgoliaSearch\Model\Source;
 
-use Magento\Framework\DataObject;
-
 class SortOrderCategory extends AbstractTable
 {
     protected function getTableData()
@@ -12,7 +10,7 @@ class SortOrderCategory extends AbstractTable
 
         return [
             'attribute' => [
-                'label' => 'Attribute',
+                'label'  => 'Attribute',
                 'values' => function () use ($categoryHelper) {
                     $aOptions = [];
                     $attributes = $categoryHelper->getAllAttributes();
@@ -25,15 +23,15 @@ class SortOrderCategory extends AbstractTable
                 }
             ],
             'searchable' => [
-                'label' => 'Searchable',
+                'label'  => 'Searchable',
                 'values' => ['1' => 'Yes', '2' => 'No']
             ],
             'retrievable' => [
-                'label' => 'Retrievable',
+                'label'  => 'Retrievable',
                 'values' => ['1' => 'Yes', '2' => 'No']
             ],
             'order' => [
-                'label' => 'Ordered',
+                'label'  => 'Ordered',
                 'values' => ['ordered' => 'Ordered', 'unordered' => 'Unordered']
             ]
         ];

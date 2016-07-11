@@ -3,6 +3,7 @@
  * Copyright © 2015 Magento. All rights reserved.
  * See COPYING.txt for license details.
  */
+
 namespace Algolia\AlgoliaSearch\Adapter;
 
 use Algolia\AlgoliaSearch\Helper\ConfigHelper;
@@ -18,7 +19,7 @@ use Magento\Framework\Search\RequestInterface;
 use Magento\CatalogSearch\Helper\Data;
 use Magento\Store\Model\StoreManagerInterface;
 use Magento\Framework\App\Request\Http;
-use \Algolia\AlgoliaSearch\Helper\Data as AlgoliaHelper;
+use Algolia\AlgoliaSearch\Helper\Data as AlgoliaHelper;
 
 /**
  * MySQL Search Adapter
@@ -73,10 +74,10 @@ class Algolia implements AdapterInterface
     protected $request;
 
     /**
-     * @param Mapper $mapper
-     * @param ResponseFactory $responseFactory
-     * @param ResourceConnection $resource
-     * @param AggregationBuilder $aggregationBuilder
+     * @param Mapper                  $mapper
+     * @param ResponseFactory         $responseFactory
+     * @param ResourceConnection      $resource
+     * @param AggregationBuilder      $aggregationBuilder
      * @param TemporaryStorageFactory $temporaryStorageFactory
      */
     public function __construct(
@@ -116,16 +117,18 @@ class Algolia implements AdapterInterface
         $documents = [];
         $table = null;
 
-        if (! $this->config->getApplicationID($storeId) || ! $this->config->getAPIKey($storeId) || $this->config->isEnabledFrontEnd($storeId) === false ||
+        if (!$this->config->getApplicationID($storeId) || !$this->config->getAPIKey($storeId) || $this->config->isEnabledFrontEnd($storeId) === false ||
             ($this->request->getControllerName() === 'category' && $this->config->replaceCategories($storeId) == false)
         ) {
             $query = $this->mapper->buildQuery($request);
             $table = $temporaryStorage->storeDocumentsFromSelect($query);
             $documents = $this->getDocuments($table);
-        }
-        else {
+        } else {
             $algolia_query = $query !== '__empty__' ? $query : '';
-            $documents = $this->config->makeSeoRequest($storeId) ? $this->algoliaHelper->getSearchResult($algolia_query, $storeId) : [];
+            //If instant search is on, do not make a search query unless SEO request is set to 'Yes'
+            if (!$this->config->isInstantEnabled($storeId) || $this->config->makeSeoRequest($storeId)) {
+                $documents = $this->algoliaHelper->getSearchResult($algolia_query, $storeId);
+            }
 
             $documents_to_store = array_map(function ($document) {
                 return new \Magento\Framework\Search\Document($document['entity_id'], ['score' => new \Magento\Framework\Search\DocumentField('score', $document['score'])]);
@@ -137,9 +140,10 @@ class Algolia implements AdapterInterface
         $aggregations = $this->aggregationBuilder->build($request, $table);
 
         $response = [
-            'documents' => $documents,
+            'documents'    => $documents,
             'aggregations' => $aggregations,
         ];
+
         return $this->responseFactory->create($response);
     }
 
@@ -147,7 +151,9 @@ class Algolia implements AdapterInterface
      * Executes query and return raw response
      *
      * @param Table $table
+     *
      * @return array
+     *
      * @throws \Zend_Db_Exception
      */
     private function getDocuments(Table $table)
@@ -155,6 +161,7 @@ class Algolia implements AdapterInterface
         $connection = $this->getConnection();
         $select = $connection->select();
         $select->from($table->getName(), ['entity_id', 'score']);
+
         return $connection->fetchAssoc($select);
     }
 

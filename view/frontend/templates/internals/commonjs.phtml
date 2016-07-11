@@ -1,12 +1,24 @@
 <?php
-$base_url = $this->storeManager->getStore()->getBaseUrl();
+/** @var \Algolia\AlgoliaSearch\Block\Algolia $block */
+
+$config = $block->getConfigHelper();
+
+$catalogSearchHelper = $block->getCatalogSearchHelper();
+
+$product_helper = $block->getProductHelper();
+
+$algolia_helper = $block->getAlgoliaHelper();
+
+$base_url = rtrim($block->getBaseUrl(), '/');
 
 $isSearchPage = false;
 $isCategoryPage = false;
 
-$currency_code = $this->storeManager->getStore()->getCurrentCurrencyCode();
-$group_id = $this->customerSession->getCustomerGroupId();
-$price_key = $this->config->isCustomerGroupsEnabled($this->storeManager->getStore()->getStoreId()) ? '.'.$currency_code.'.group_'.$group_id : '.'.$currency_code.'.default';
+$currency_code = $block->getCurrencyCode();
+
+$group_id = $block->getGroupId();
+
+$price_key = $block->getPriceKey();
 
 $allDepartments = "All departments";
 
@@ -18,23 +30,21 @@ $path = '';
 /**
  * Handle category replacement
  */
-if($this->config->isInstantEnabled() && $this->config->replaceCategories() && $this->request->getControllerName() == 'category')
-{
-    $category = $this->registry->registry('current_category');
+if ($config->isInstantEnabled() && $config->replaceCategories() && $block->getRequest()->getControllerName() == 'category') {
+    $category = $block->getCurrentCategory();
 
-    if ($category && $category->getDisplayMode() !== 'PAGE')
-    {
-        $category->getUrlInstance()->setStore($this->storeManager->getStore()->getStoreId());
+    if ($category && $category->getDisplayMode() !== 'PAGE') {
+        $category->getUrlInstance()->setStore($block->getStoreId());
 
         foreach ($category->getPathIds() as $treeCategoryId) {
             if ($path != '') {
                 $path .= ' /// ';
             }
 
-            $path .= $this->productHelper->getCategoryName($treeCategoryId, $this->storeManager->getStore()->getStoreId());
+            $path .= $product_helper->getCategoryName($treeCategoryId, $block->getStoreId());
         }
 
-        $indexName = $this->productHelper->getIndexName($this->storeManager->getStore()->getStoreId());
+        $indexName = $product_helper->getIndexName($block->getStoreId());
         $category_url = $category->getUrl($category);
         $isSearchPage = true;
         $isCategoryPage = true;
@@ -44,37 +54,38 @@ if($this->config->isInstantEnabled() && $this->config->replaceCategories() && $t
 /**
  * Handle search
  */
-if ($this->config->isInstantEnabled())
-{
-    $pageIdentifier = $this->request->getFullActionName();
+if ($config->isInstantEnabled()) {
+    $pageIdentifier = $block->getRequest()->getFullActionName();
 
-    if ($pageIdentifier === 'catalogsearch_result_index')
-    {
-        $query = $this->catalogSearchHelper->getEscapedQueryText();
+    if ($pageIdentifier === 'catalogsearch_result_index') {
+        $query = $catalogSearchHelper->getEscapedQueryText();
 
-        if ($query == '__empty__')
+        if ($query == '__empty__') {
             $query = '';
+        }
 
-        $refinement_key = $this->request->getParam('refinement_key');
+        $product_helper = $block->getProductHelper();
 
-        if ($refinement_key !== null)
-        {
+        $refinement_key = $block->getRequest()->getParam('refinement_key');
+
+        if ($refinement_key !== null) {
             $refinement_value = $query;
             $query = "";
         }
-        else
+        else {
             $refinement_key = "";
+        }
 
         $isSearchPage = true;
     }
 }
 
-if ($base_url[strlen($base_url) - 1] == '/')
-    $base_url = substr($base_url, 0, strlen($base_url) - 1);
-
-if ($this->config->isInstantEnabled() && $isSearchPage) {
-    // hide the instant-search selector ASAP to remove flickering. Will be re-displayed later with JS
-    echo '<style>' . $this->config->getInstantSelector() . '{ display: none; }</style>';
+// Hide the instant-search selector ASAP to remove flickering. Will be re-displayed later with JS.
+if ($config->isInstantEnabled() && $isSearchPage) {
+    echo '
+    <script>
+        document.write(\'<style type="text/css"> ' . $config->getInstantSelector() . '{display:none}</style>\');
+    </script>';
 }
 
 ?>
@@ -82,44 +93,46 @@ if ($this->config->isInstantEnabled() && $isSearchPage) {
 <script>
     requirejs(['algoliaBundle'], function(algoliaBundle) {
         algoliaBundle.$(function ($) {
-            document.body.innerHTML = document.body.innerHTML.replace(/__empty__/g, '');
             window.algoliaConfig = {
                 instant: {
-                    enabled: <?php echo $this->config->isInstantEnabled() ? "true" : "false"; ?>,
-                    selector: '<?php echo $this->config->getInstantSelector(); ?>',
-                    isAddToCartEnabled: <?php echo $this->config->isAddToCartEnable() ? "true" : "false"; ?>
+                    enabled: <?php echo $config->isInstantEnabled() ? "true" : "false"; ?>,
+                    selector: '<?php echo $config->getInstantSelector(); ?>',
+                    isAddToCartEnabled: <?php echo $config->isAddToCartEnable() ? "true" : "false"; ?>
                 },
                 autocomplete: {
-                    enabled: <?php echo $this->config->isAutoCompleteEnabled() ? "true" : "false"; ?>,
-                    selector: '<?php echo $this->config->getAutocompleteSelector(); ?>',
-                    sections: <?php echo json_encode($this->config->getAutocompleteSections()); ?>,
-                    nbOfProductsSuggestions: '<?php echo $this->config->getNumberOfProductsSuggestions(); ?>',
-                    nbOfCategoriesSuggestions: '<?php echo $this->config->getNumberOfCategoriesSuggestions(); ?>',
-                    nbOfQueriesSuggestions: '<?php echo $this->config->getNumberOfQueriesSuggestions(); ?>'
+                    enabled: <?php echo $config->isAutoCompleteEnabled() ? "true" : "false"; ?>,
+                    selector: '<?php echo $config->getAutocompleteSelector(); ?>',
+                    sections: <?php echo json_encode($config->getAutocompleteSections()); ?>,
+                    nbOfProductsSuggestions: '<?php echo $config->getNumberOfProductsSuggestions(); ?>',
+                    nbOfCategoriesSuggestions: '<?php echo $config->getNumberOfCategoriesSuggestions(); ?>',
+                    nbOfQueriesSuggestions: '<?php echo $config->getNumberOfQueriesSuggestions(); ?>'
                 },
-                applicationId: '<?php echo $this->config->getApplicationID() ?>',
-                indexName: '<?php echo $this->productHelper->getBaseIndexName(); ?>',
-                apiKey: '<?php echo $this->config->getSearchOnlyAPIKey() ?>',
-                facets: <?php echo json_encode($this->config->getFacets()); ?>,
-                hitsPerPage: <?php echo (int) $this->config->getNumberOfProductResults() ?>,
-                sortingIndices: <?php echo json_encode(array_values($this->config->getSortingIndices())); ?>,
+                extensionVersion: '<?php echo $config->getExtensionVersion() ?>',
+                applicationId: '<?php echo $config->getApplicationID() ?>',
+                indexName: '<?php echo $product_helper->getBaseIndexName(); ?>',
+                apiKey: '<?php echo $algolia_helper->generateSearchSecuredApiKey($config->getSearchOnlyAPIKey(), $config->getAttributesToRetrieve($group_id)) ?>',
+                facets: <?php echo json_encode($config->getFacets()); ?>,
+                hitsPerPage: <?php echo (int) $config->getNumberOfProductResults() ?>,
+                sortingIndices: <?php echo json_encode(array_values($config->getSortingIndices())); ?>,
                 isSearchPage: <?php echo $isSearchPage ? "true" : "false" ?>,
                 isCategoryPage: <?php echo $isCategoryPage ? "true" : "false" ?>,
-                removeBranding: <?php echo $this->config->isRemoveBranding() ? "true" : "false"; ?>,
+                removeBranding: <?php echo $config->isRemoveBranding() ? "true" : "false"; ?>,
                 priceKey: '<?php echo $price_key; ?>',
-                currencySymbol: '<?php echo $this->currency->getCurrency($this->storeManager->getStore()->getCurrentCurrencyCode())->getSymbol(); ?>',
+                currencySymbol: '<?php echo $block->getCurrencySymbol(); ?>',
                 currency_code: '<?php echo $currency_code; ?>',
+                maxValuesPerFacet: <?php echo (int) $config->getMaxValuesPerFacet(); ?>,
                 autofocus: true,
                 request: {
-                    query:<?php echo json_encode(array("value" => html_entity_decode($query))); ?>.value,
-                refinement_key: '<?php echo $refinement_key; ?>',
-                refinement_value: '<?php echo $refinement_value; ?>',
-                path: '<?php echo $path; ?>'
-            },
-                showSuggestionsOnNoResultsPage: <?php echo $this->config->showSuggestionsOnNoResultsPage() ? "true" : "false"; ?>,
-            baseUrl: '<?php echo $base_url ?>',
-                popularQueries: <?php echo json_encode($this->config->getPopularQueries()); ?>
-        };
+                    query: <?php echo json_encode(array("value" => html_entity_decode($query))); ?>.value,
+                    refinement_key: '<?php echo $refinement_key; ?>',
+                    refinement_value: '<?php echo $refinement_value; ?>',
+                    path: '<?php echo $path; ?>'
+                },
+                show_cats_not_included_in_navigation: <?php echo $config->showCatsNotIncludedInNavigation() ? "true" : "false"; ?>,
+                showSuggestionsOnNoResultsPage: <?php echo $config->showSuggestionsOnNoResultsPage() ? "true" : "false"; ?>,
+                baseUrl: '<?php echo $base_url ?>',
+                popularQueries: <?php echo json_encode($config->getPopularQueries()); ?>
+            };
 
             window.transformHit = function (hit, price_key) {
                 if (Array.isArray(hit.categories))
@@ -167,7 +180,7 @@ if ($this->config->isInstantEnabled() && $isSearchPage) {
                     hit.price = hit.price[0];
 
                 if (price_key !== '.' + algoliaConfig.currency_code + '.default' && hit['price'] !== undefined &&
-                    hit['price'][algoliaConfig.currency_code][price_key.substr(1) + '_formated'] !== hit['price'][algoliaConfig.currency_code]['default_formated']) {
+                        hit['price'][algoliaConfig.currency_code][price_key.substr(1) + '_formated'] !== hit['price'][algoliaConfig.currency_code]['default_formated']) {
                     hit['price'][algoliaConfig.currency_code][price_key.substr(1) + '_original_formated'] = hit['price'][algoliaConfig.currency_code]['default_formated'];
                 }
 
@@ -194,7 +207,7 @@ if ($this->config->isInstantEnabled() && $isSearchPage) {
 
                 var listItemTemplate = '<label class="{{cssClasses.label}}">' +
                     '<input type="checkbox" class="{{cssClasses.checkbox}}" value="{{name}}" {{#isRefined}}checked{{/isRefined}} />{{name}}' +
-                    '{{#isRefined}}<img class="cross-circle" src="<?php echo $block->getViewFileUrl('Algolia_AlgoliaSearch::cross-circle.png') ?>"/>{{/isRefined}}' +
+                    '{{#isRefined}}<img class="cross-circle" src="<?php echo $block->getViewFileUrl('Algolia_AlgoliaSearch::cross-circle.png'); ?>"/>{{/isRefined}}' +
                     '<span class="{{cssClasses.count}}">{{#helpers.formatNumber}}{{count}}{{/helpers.formatNumber}}</span>' +
                     '</label>';
 
@@ -204,6 +217,7 @@ if ($this->config->isInstantEnabled() && $isSearchPage) {
                     return algoliaBundle.instantsearch.widgets.refinementList({
                         container: facet.wrapper.appendChild(document.createElement('div')),
                         attributeName: facet.attribute,
+                        limit: algoliaConfig.maxValuesPerFacet,
                         operator: 'and',
                         templates: templates,
                         cssClasses: {
@@ -218,6 +232,7 @@ if ($this->config->isInstantEnabled() && $isSearchPage) {
                     return algoliaBundle.instantsearch.widgets.refinementList({
                         container: facet.wrapper.appendChild(document.createElement('div')),
                         attributeName: facet.attribute,
+                        limit: algoliaConfig.maxValuesPerFacet,
                         operator: 'or',
                         templates: templates,
                         cssClasses: {
@@ -264,7 +279,7 @@ if ($this->config->isInstantEnabled() && $isSearchPage) {
                         templates: {
                             empty: function (query) {
                                 var template = '<div class="aa-no-results-products">' +
-                                    '<div class="title"><?php echo __('No products for query'); ?> "' + $("<div>").text(query.query).html() + '"</div>';
+                                                    '<div class="title"><?php echo __('No products for query'); ?> "' + $("<div>").text(query.query).html() + '"</div>';
 
                                 var suggestions = [];
 
@@ -280,7 +295,7 @@ if ($this->config->isInstantEnabled() && $isSearchPage) {
                                 }
 
                                 template +=         '<div class="see-all">' + (suggestions.length > 0 ? '<?php echo __('or'); ?> ' : '') + '<a href="' + algoliaConfig.baseUrl + '/catalogsearch/result/?q=__empty__"><?php echo __('See all products'); ?></a></div>' +
-                                    '</div>';
+                                                '</div>';
 
                                 return template;
                             },
@@ -294,11 +309,15 @@ if ($this->config->isInstantEnabled() && $isSearchPage) {
                 }
                 else if (section.name === "categories" || section.name === "pages")
                 {
+                    if (section.name === "categories" && algoliaConfig.show_cats_not_included_in_navigation == false) {
+                        options.numericFilters = 'include_in_menu=1';
+                    }
+
                     source =  {
                         source: $.fn.autocomplete.sources.hits(algolia_client.initIndex(algoliaConfig.indexName + "_" + section.name), options),
                         name: i,
                         templates: {
-                            empty: '<div class="aa-no-results">No results</div>',
+                            empty: '<div class="aa-no-results"><?php echo __("No results"); ?></div>',
                             suggestion: function (hit) {
                                 if (section.name === 'categories') {
                                     hit.displayKey = hit.path;
@@ -387,9 +406,8 @@ if ($this->config->isInstantEnabled() && $isSearchPage) {
                 if (section.name === 'products') {
                     source.templates.footer = function (query, content) {
                         var keys = [];
-
                         for (var key in content.facets['categories.level0']) {
-                            var url = algoliaConfig.baseUrl + '/catalogsearch/result/?q=' + query.query + '#q=' + query.query + '&hFR[categories.level0][0]=' + encodeURIComponent(key) + '&idx=' + algoliaConfig.indexName + '_products';
+                            var url = algoliaConfig.baseUrl + '/catalogsearch/result/?q=' + encodeURIComponent(query.query) + '#q=' + encodeURIComponent(query.query) + '&hFR[categories.level0][0]=' + encodeURIComponent(key) + '&idx=' + algoliaConfig.indexName + '_products';
                             keys.push({
                                 key: key,
                                 value: content.facets['categories.level0'][key],
@@ -410,9 +428,17 @@ if ($this->config->isInstantEnabled() && $isSearchPage) {
                         if (keys.length > 1) {
                             ors += ', <span><a href="' + keys[1].url + '">' + keys[1].key + '</a></span>';
                         }
+                        
+                        var allUrl = algoliaConfig.baseUrl + '/catalogsearch/result/?q=' + encodeURIComponent(query.query);
+                        var returnFooter = '<div id="autocomplete-products-footer"><?php echo __('See products in'); ?> <span><a href="' + allUrl +  '"><?php echo __('All departments'); ?></a></span> (' + content.nbHits + ')';
 
-                        var allUrl = algoliaConfig.baseUrl + '/catalogsearch/result/?q=' + query.query;
-                        return '<div id="autocomplete-products-footer">See products in <span><a href="' + allUrl +  '">All departments</a></span> (' + content.nbHits + ') or in ' + ors + '</div>';
+                        if(ors && algoliaConfig.instant.enabled) {
+                            returnFooter += ' <?php echo __('or in'); ?> ' + ors;
+                        }
+
+                        returnFooter += '</div>';
+
+                        return returnFooter;
                     }
                 }
 
@@ -532,6 +558,11 @@ if ($this->config->isInstantEnabled() && $isSearchPage) {
             $(document).on('click', '.clear-query-autocomplete', function () {
                 var input = $(this).closest('#algolia-searchbox').find('input');
                 input.val('');
+
+                if(!algoliaConfig.autocomplete.enabled && algoliaConfig.instant.enabled) {
+                    input.get(0).dispatchEvent(new Event('input'));
+                }
+
                 handleInputCrossAutocomplete(input);
             });
 
@@ -541,9 +572,9 @@ if ($this->config->isInstantEnabled() && $isSearchPage) {
             $('body').on('click', '#refine-toggle', function () {
                 $('#instant-search-facets-container').toggleClass('hidden-sm').toggleClass('hidden-xs');
                 if ($(this).html()[0] === '+')
-                    $(this).html('- Refine');
+                    $(this).html('- <?php echo __("Refine"); ?>');
                 else
-                    $(this).html('+ Refine');
+                    $(this).html('+ <?php echo __("Refine"); ?>');
             });
 
             $.fn.focusWithoutScrolling = function(){
@@ -557,6 +588,10 @@ if ($this->config->isInstantEnabled() && $isSearchPage) {
 
 <!--[if lte IE 9]>
 <script>
-    algoliaConfig.autofocus = false;
+    document.addEventListener("DOMContentLoaded", function(event) {
+        algoliaBundle.$(function ($) {
+            window.algoliaConfig.autofocus = false;
+        });
+    });
 </script>
 <![endif]-->

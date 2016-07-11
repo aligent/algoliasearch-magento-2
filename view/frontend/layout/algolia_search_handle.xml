@@ -4,11 +4,12 @@
         <script src="Algolia_AlgoliaSearch::algoliaBundle.min.js"/>
         <css src="Algolia_AlgoliaSearch::algoliasearch.css" />
     </head>
-    <referenceBlock name="head.additional">
-        <block type="core/template" template="polyfill.phtml" class="Algolia\AlgoliaSearch\Block\Algolia"/>
-        <block type="core/template" template="beforetopsearch.phtml" class="Algolia\AlgoliaSearch\Block\Algolia"/>
-    </referenceBlock>
-    <referenceBlock name="main.content">
-        <block type="core/template" before="-" template="beforecontent.phtml" class="Algolia\AlgoliaSearch\Block\Algolia"/>
-    </referenceBlock>
+    <body>
+        <referenceBlock name="head.additional">
+            <block class="Algolia\AlgoliaSearch\Block\Algolia" name="algolia.internals.commonjs" template="Algolia_AlgoliaSearch::internals/commonjs.phtml"/>
+        </referenceBlock>
+        <referenceBlock name="main.content">
+            <block class="Magento\Framework\View\Element\Template" before="-" name="algolia.beforecontent" template="Algolia_AlgoliaSearch::internals/beforecontent.phtml"/>
+        </referenceBlock>
+    </body>
 </page>
