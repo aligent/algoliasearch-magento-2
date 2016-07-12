@@ -20,36 +20,82 @@ use Magento\Framework\ObjectManagerInterface;
 use Magento\Framework\Url;
 use Magento\Store\Model\StoreManagerInterface;
 use Magento\Catalog\Helper\Data as CatalogHelper;
-use Magento\Tax\Helper\Data;
+use Magento\Tax\Helper\Data as TaxHelper;
+use Magento\Framework\Module\Manager as ModuleManager;
 
 abstract class BaseHelper
 {
+    /** @var ConfigHelper */
     protected $config;
+    /** @var Logger */
     protected $logger;
+    /** @var AlgoliaHelper */
     protected $algoliaHelper;
+    /** @var Config */
     protected $eavConfig;
 
+    /** @var StoreManagerInterface */
     protected $storeManager;
+    /** @var ManagerInterface */
     protected $eventManager;
+    /** @var CurrencyHelper */
     protected $currencyManager;
+    /** @var TaxHelper */
     protected $taxHelper;
+    /** @var Visibility */
     protected $visibility;
 
+    /** @var array */
     protected static $_activeCategories;
+    /** @var array */
     protected static $_categoryNames;
+    /** @var Stock */
     protected $stock;
+    /** @var StockRegistryInterface */
     protected $stockRegistry;
+    /** @var CurrencyHelper */
     protected $currencyHelper;
+    /** @var CurrencyDirectory */
     protected $currencyDirectory;
+    /** @var CatalogHelper */
     protected $catalogHelper;
+    /** @var ResourceConnection */
     protected $queryResource;
+    /** @var FilterProvider */
     protected $filterProvider;
+    /** @var CurrencyFactory */
     protected $currencyFactory;
+    /** @var ObjectManagerInterface  */
+    protected $objectManager;
+    /** @var ModuleManager */
+    protected $moduleManager;
 
+    /** @var array */
     protected $storeUrls;
 
     abstract protected function getIndexNameSuffix();
 
+    /**
+     * @param Config $eavConfig
+     * @param ConfigHelper $configHelper
+     * @param AlgoliaHelper $algoliaHelper
+     * @param Logger $logger
+     * @param StoreManagerInterface $storeManager
+     * @param ManagerInterface $eventManager
+     * @param Visibility $visibility
+     * @param Stock $stock
+     * @param TaxHelper $taxHelper
+     * @param StockRegistryInterface $stockRegistry
+     * @param CurrencyDirectory $currencyDirectory
+     * @param CurrencyHelper $currencyHelper
+     * @param ObjectManagerInterface $objectManager
+     * @param CatalogHelper $catalogHelper
+     * @param ResourceConnection $queryResource
+     * @param CurrencyHelper $currencyManager
+     * @param FilterProvider $filterProvider
+     * @param CurrencyFactory $currencyFactory
+     * @param ModuleManager $moduleManager
+     */
     public function __construct(Config $eavConfig,
                                 ConfigHelper $configHelper,
                                 AlgoliaHelper $algoliaHelper,
@@ -58,7 +104,7 @@ abstract class BaseHelper
                                 ManagerInterface $eventManager,
                                 Visibility $visibility,
                                 Stock $stock,
-                                Data $taxHelper,
+                                TaxHelper $taxHelper,
                                 StockRegistryInterface $stockRegistry,
                                 CurrencyDirectory $currencyDirectory,
                                 CurrencyHelper $currencyHelper,
@@ -67,8 +113,9 @@ abstract class BaseHelper
                                 ResourceConnection $queryResource,
                                 Currency $currencyManager,
                                 FilterProvider $filterProvider,
-                                CurrencyFactory $currencyFactory)
-    {
+                                CurrencyFactory $currencyFactory,
+                                ModuleManager $moduleManager
+    ) {
         $this->eavConfig = $eavConfig;
         $this->config = $configHelper;
         $this->algoliaHelper = $algoliaHelper;
@@ -88,6 +135,7 @@ abstract class BaseHelper
         $this->queryResource = $queryResource;
         $this->filterProvider = $filterProvider;
         $this->currencyFactory = $currencyFactory;
+        $this->moduleManager = $moduleManager;
     }
 
     public function getBaseIndexName($storeId = null)
@@ -199,22 +247,31 @@ abstract class BaseHelper
         return $path;
     }
 
+    public function getCategoryJoinAttribute()
+    {
+        if ($this->moduleManager->isEnabled('Magento_CatalogStaging')) {
+            return 'row_id';
+        } else {
+            return 'entity_id';
+        }
+    }
+
     public function getCategories()
     {
         if (is_null(self::$_activeCategories)) {
             self::$_activeCategories = [];
-
             /** @var \Magento\Catalog\Model\ResourceModel\Category $resource */
             $resource = $this->objectManager->create('\Magento\Catalog\Model\ResourceModel\Category');
 
             if ($attribute = $resource->getAttribute('is_active')) {
                 $connection = $this->queryResource->getConnection();
+                $joinId = $this->getCategoryJoinAttribute();
                 $select = $connection->select()
-                    ->from(['backend' => $attribute->getBackendTable()], ['key' => new \Zend_Db_Expr("CONCAT(backend.store_id, '-', backend.entity_id)"), 'category.path', 'backend.value'])
-                    ->join(['category' => $resource->getTable('catalog_category_entity')], 'backend.entity_id = category.entity_id', [])
+                    ->from(['backend' => $attribute->getBackendTable()], ['key' => new \Zend_Db_Expr("CONCAT(backend.store_id, '-', category.entity_id)"), 'category.path', 'backend.value'])
+                    ->join(['category' => $resource->getTable('catalog_category_entity')], "backend.$joinId = category.$joinId", [])
                     ->where('backend.attribute_id = ?', $attribute->getAttributeId())
                     ->order('backend.store_id')
-                    ->order('backend.entity_id');
+                    ->order('category.entity_id');
 
                 self::$_activeCategories = $connection->fetchAssoc($select);
             }
@@ -244,10 +301,11 @@ abstract class BaseHelper
 
             if ($attribute = $categoryModel->getAttribute('name')) {
                 $connection = $this->queryResource->getConnection();
+                $joinId = $this->getCategoryJoinAttribute();
 
                 $select = $connection->select()
-                    ->from(['backend' => $attribute->getBackendTable()], [new \Zend_Db_Expr("CONCAT(backend.store_id, '-', backend.entity_id)"), 'backend.value'])
-                    ->join(['category' => $categoryModel->getTable('catalog_category_entity')], 'backend.entity_id = category.entity_id', [])
+                    ->from(['backend' => $attribute->getBackendTable()], [new \Zend_Db_Expr("CONCAT(backend.store_id, '-', category.entity_id)"), 'backend.value'])
+                    ->join(['category' => $categoryModel->getTable('catalog_category_entity')], "backend.$joinId = category.$joinId", [])
                     ->where('backend.attribute_id = ?', $attribute->getAttributeId())
                     ->where('category.level > ?', 1);
 
