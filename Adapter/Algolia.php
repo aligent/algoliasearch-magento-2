@@ -7,6 +7,8 @@
 namespace Algolia\AlgoliaSearch\Adapter;
 
 use Algolia\AlgoliaSearch\Helper\ConfigHelper;
+use Magento\Framework\Api\AttributeValueFactory;
+use Magento\Framework\Api\Search\DocumentFactory;
 use Magento\Framework\App\ResourceConnection;
 use Magento\Framework\DB\Ddl\Table;
 use Magento\Framework\DB\Select;
@@ -74,11 +76,28 @@ class Algolia implements AdapterInterface
     protected $request;
 
     /**
-     * @param Mapper                  $mapper
-     * @param ResponseFactory         $responseFactory
-     * @param ResourceConnection      $resource
-     * @param AggregationBuilder      $aggregationBuilder
+     * @var DocumentFactory
+     */
+    protected $documentFactory;
+
+    /**
+     * @var AttributeValueFactory\
+     */
+    protected $attributeValueFactory;
+
+    /**
+     * @param Mapper $mapper
+     * @param ResponseFactory $responseFactory
+     * @param ResourceConnection $resource
+     * @param AggregationBuilder $aggregationBuilder
      * @param TemporaryStorageFactory $temporaryStorageFactory
+     * @param ConfigHelper $config
+     * @param Data $catalogSearchHelper
+     * @param StoreManagerInterface $storeManager
+     * @param AlgoliaHelper $algoliaHelper
+     * @param Http $request
+     * @param DocumentFactory $documentFactory
+     * @param AttributeValueFactory $attributeValueFactory
      */
     public function __construct(
         Mapper $mapper,
@@ -90,7 +109,9 @@ class Algolia implements AdapterInterface
         Data $catalogSearchHelper,
         StoreManagerInterface $storeManager,
         AlgoliaHelper $algoliaHelper,
-        Http $request
+        Http $request,
+        DocumentFactory $documentFactory,
+        AttributeValueFactory $attributeValueFactory
     ) {
         $this->mapper = $mapper;
         $this->responseFactory = $responseFactory;
@@ -102,6 +123,8 @@ class Algolia implements AdapterInterface
         $this->storeManager = $storeManager;
         $this->algoliaHelper = $algoliaHelper;
         $this->request = $request;
+        $this->documentFactory = $documentFactory;
+        $this->attributeValueFactory = $attributeValueFactory;
     }
 
     /**
@@ -131,10 +154,19 @@ class Algolia implements AdapterInterface
             }
 
             $documents_to_store = array_map(function ($document) {
-                return new \Magento\Framework\Search\Document($document['entity_id'], ['score' => new \Magento\Framework\Search\DocumentField('score', $document['score'])]);
+
+                $scoreAttribute = $this->attributeValueFactory->create();
+                $scoreAttribute->setAttributeCode('score');
+                $scoreAttribute->setValue($document['score']);
+
+                $documentModel = $this->documentFactory->create();
+                $documentModel->setData('id', $document['entity_id']);
+                $documentModel->setCustomAttribute('score', $scoreAttribute);
+
+                return $documentModel;
             }, $documents);
 
-            $table = $temporaryStorage->storeDocuments($documents_to_store);
+            $table = $temporaryStorage->storeApiDocuments($documents_to_store);
         }
 
         $aggregations = $this->aggregationBuilder->build($request, $table);
