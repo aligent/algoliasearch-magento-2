@@ -49,7 +49,7 @@ class AdditionalSectionHelper extends BaseHelper
 
             $record = [
                 'objectID' => $value,
-                'value'    => $value
+                'value'    => $value,
             ];
 
             $transport = new DataObject($record);

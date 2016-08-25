@@ -10,7 +10,7 @@ class Synonyms extends AbstractTable
             'synonyms' => [
                 'label' => 'Synonyms (comma-separated)',
                 'style' => 'width: 550px;',
-            ]
+            ],
         ];
     }
 }

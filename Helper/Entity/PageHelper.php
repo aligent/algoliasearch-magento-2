@@ -15,7 +15,7 @@ class PageHelper extends BaseHelper
     {
         return [
             'attributesToIndex'   => ['slug', 'name', 'unordered(content)'],
-            'attributesToSnippet' => ['content:7']
+            'attributesToSnippet' => ['content:7'],
         ];
     }
 

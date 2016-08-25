@@ -25,7 +25,7 @@ class CategoryHelper extends BaseHelper
                 if ($attribute['order'] == 'ordered') {
                     $attributesToIndex[] = $attribute['attribute'];
                 } else {
-                    $attributesToIndex[] = 'unordered('.$attribute['attribute'].')';
+                    $attributesToIndex[] = 'unordered(' . $attribute['attribute'] . ')';
                 }
             }
 
@@ -39,20 +39,20 @@ class CategoryHelper extends BaseHelper
         $customRankingsArr = [];
 
         foreach ($customRankings as $ranking) {
-            $customRankingsArr[] = $ranking['order'].'('.$ranking['attribute'].')';
+            $customRankingsArr[] = $ranking['order'] . '(' . $ranking['attribute'] . ')';
         }
 
         // Default index settings
         $indexSettings = [
             'attributesToIndex'       => array_values(array_unique($attributesToIndex)),
             'customRanking'           => $customRankingsArr,
-            'unretrievableAttributes' => $unretrievableAttributes
+            'unretrievableAttributes' => $unretrievableAttributes,
         ];
         // Additional index settings from event observer
         $transport = new DataObject($indexSettings);
         $this->eventManager->dispatch('algolia_index_settings_prepare', [
                 'store_id'       => $storeId,
-                'index_settings' => $transport
+                'index_settings' => $transport,
             ]
         );
         $indexSettings = $transport->getData();
@@ -114,7 +114,7 @@ class CategoryHelper extends BaseHelper
                 'default_sort_by', 'display_mode', 'filter_price_range', 'global_position', 'image', 'include_in_menu', 'is_active',
                 'is_always_include_in_menu', 'is_anchor', 'landing_page', 'level', 'lower_cms_block',
                 'page_layout', 'path_in_store', 'position', 'small_image', 'thumbnail', 'url_key', 'url_path',
-                'visible_in_menu'];
+                'visible_in_menu', ];
 
             $categoryAttributes = array_diff($categoryAttributes, $excludedAttributes);
 
@@ -159,9 +159,10 @@ class CategoryHelper extends BaseHelper
             'path'          => $path,
             'level'         => $category->getLevel(),
             'url'           => $category->getUrl(),
+            'include_in_menu' => $category->getIncludeInMenu(),
             '_tags'         => ['category'],
             'popularity'    => 1,
-            'product_count' => $category->getProductCount()
+            'product_count' => $category->getProductCount(),
         ];
 
         if (!empty($image_url)) {

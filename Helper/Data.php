@@ -7,7 +7,6 @@ use Algolia\AlgoliaSearch\Helper\Entity\CategoryHelper;
 use Algolia\AlgoliaSearch\Helper\Entity\PageHelper;
 use Algolia\AlgoliaSearch\Helper\Entity\ProductHelper;
 use Algolia\AlgoliaSearch\Helper\Entity\SuggestionHelper;
-use AlgoliaSearch\Version;
 use Magento\Catalog\Model\Category;
 use Magento\Catalog\Model\Product;
 use Magento\Catalog\Model\Product\Attribute\Source\Status;
@@ -44,8 +43,6 @@ class Data
                                 Logger $logger,
                                 ResourceConnection $resource)
     {
-        Version::$custom_value = ' Magento 2 (dev)';
-
         $this->algoliaHelper = $algoliaHelper;
 
         $this->pageHelper = $pageHelper;
@@ -64,7 +61,7 @@ class Data
     {
         if ($storeId !== null) {
             if ($this->configHelper->isEnabledBackend($storeId) === false) {
-                $this->logger->log('INDEXING IS DISABLED FOR '.$this->logger->getStoreName($storeId));
+                $this->logger->log('INDEXING IS DISABLED FOR ' . $this->logger->getStoreName($storeId));
 
                 return;
             }
@@ -77,7 +74,7 @@ class Data
     {
         if ($storeId !== null) {
             if ($this->configHelper->isEnabledBackend($storeId) === false) {
-                $this->logger->log('INDEXING IS DISABLED FOR '.$this->logger->getStoreName($storeId));
+                $this->logger->log('INDEXING IS DISABLED FOR ' . $this->logger->getStoreName($storeId));
 
                 return;
             }
@@ -100,7 +97,7 @@ class Data
         }
 
         if ($this->configHelper->isEnabledBackend($storeId) === false) {
-            $this->logger->log('INDEXING IS DISABLED FOR '.$this->logger->getStoreName($storeId));
+            $this->logger->log('INDEXING IS DISABLED FOR ' . $this->logger->getStoreName($storeId));
 
             return;
         }
@@ -115,7 +112,7 @@ class Data
                 continue;
             }
 
-            $this->algoliaHelper->setSettings($this->additionalSectionHelper->getIndexName($storeId).'_'.$section['name'], $this->additionalSectionHelper->getIndexSettings($storeId));
+            $this->algoliaHelper->setSettings($this->additionalSectionHelper->getIndexName($storeId) . '_' . $section['name'], $this->additionalSectionHelper->getIndexSettings($storeId));
         }
 
         $this->productHelper->setSettings($storeId, $useTmpIndex);
@@ -140,7 +137,7 @@ class Data
             'attributesToSnippet'    => '',
             'numericFilters'         => 'visibility_search=1',
             'removeWordsIfNoResults' => $this->configHelper->getRemoveWordsIfNoResult($storeId),
-            'analyticsTags'          => 'backend-search'
+            'analyticsTags'          => 'backend-search',
         ]);
 
         $data = [];
@@ -151,7 +148,7 @@ class Data
             if ($productId) {
                 $data[$productId] = [
                     'entity_id' => $productId,
-                    'score'     => $resultsLimit - $i
+                    'score'     => $resultsLimit - $i,
                 ];
             }
         }
@@ -162,7 +159,7 @@ class Data
     public function rebuildStoreAdditionalSectionsIndex($storeId)
     {
         if ($this->configHelper->isEnabledBackend($storeId) === false) {
-            $this->logger->log('INDEXING IS DISABLED FOR '.$this->logger->getStoreName($storeId));
+            $this->logger->log('INDEXING IS DISABLED FOR ' . $this->logger->getStoreName($storeId));
 
             return;
         }
@@ -174,15 +171,15 @@ class Data
                 continue;
             }
 
-            $index_name = $this->additionalSectionHelper->getIndexName($storeId).'_'.$section['name'];
+            $index_name = $this->additionalSectionHelper->getIndexName($storeId) . '_' . $section['name'];
 
             $attribute_values = $this->additionalSectionHelper->getAttributeValues($storeId, $section);
 
             foreach (array_chunk($attribute_values, 100) as $chunk) {
-                $this->algoliaHelper->addObjects($chunk, $index_name.'_tmp');
+                $this->algoliaHelper->addObjects($chunk, $index_name . '_tmp');
             }
 
-            $this->algoliaHelper->moveIndex($index_name.'_tmp', $index_name);
+            $this->algoliaHelper->moveIndex($index_name . '_tmp', $index_name);
 
             $this->algoliaHelper->setSettings($index_name, $this->additionalSectionHelper->getIndexSettings($storeId));
         }
@@ -191,7 +188,7 @@ class Data
     public function rebuildStorePageIndex($storeId)
     {
         if ($this->configHelper->isEnabledBackend($storeId) === false) {
-            $this->logger->log('INDEXING IS DISABLED FOR '.$this->logger->getStoreName($storeId));
+            $this->logger->log('INDEXING IS DISABLED FOR ' . $this->logger->getStoreName($storeId));
 
             return;
         }
@@ -203,10 +200,10 @@ class Data
         $pages = $this->pageHelper->getPages($storeId);
 
         foreach (array_chunk($pages, 100) as $chunk) {
-            $this->algoliaHelper->addObjects($chunk, $index_name.'_tmp');
+            $this->algoliaHelper->addObjects($chunk, $index_name . '_tmp');
         }
 
-        $this->algoliaHelper->moveIndex($index_name.'_tmp', $index_name);
+        $this->algoliaHelper->moveIndex($index_name . '_tmp', $index_name);
 
         $this->algoliaHelper->setSettings($index_name, $this->pageHelper->getIndexSettings($storeId));
 
@@ -216,7 +213,7 @@ class Data
     public function rebuildStoreCategoryIndex($storeId, $categoryIds = null)
     {
         if ($this->configHelper->isEnabledBackend($storeId) === false) {
-            $this->logger->log('INDEXING IS DISABLED FOR '.$this->logger->getStoreName($storeId));
+            $this->logger->log('INDEXING IS DISABLED FOR ' . $this->logger->getStoreName($storeId));
 
             return;
         }
@@ -252,7 +249,7 @@ class Data
     public function rebuildStoreSuggestionIndex($storeId)
     {
         if ($this->configHelper->isEnabledBackend($storeId) === false) {
-            $this->logger->log('INDEXING IS DISABLED FOR '.$this->logger->getStoreName($storeId));
+            $this->logger->log('INDEXING IS DISABLED FOR ' . $this->logger->getStoreName($storeId));
 
             return;
         }
@@ -286,18 +283,18 @@ class Data
     public function moveStoreSuggestionIndex($storeId)
     {
         if ($this->configHelper->isEnabledBackend($storeId) === false) {
-            $this->logger->log('INDEXING IS DISABLED FOR '.$this->logger->getStoreName($storeId));
+            $this->logger->log('INDEXING IS DISABLED FOR ' . $this->logger->getStoreName($storeId));
 
             return;
         }
 
-        $this->algoliaHelper->moveIndex($this->suggestionHelper->getIndexName($storeId).'_tmp', $this->suggestionHelper->getIndexName($storeId));
+        $this->algoliaHelper->moveIndex($this->suggestionHelper->getIndexName($storeId) . '_tmp', $this->suggestionHelper->getIndexName($storeId));
     }
 
     public function rebuildStoreProductIndex($storeId, $productIds)
     {
         if ($this->configHelper->isEnabledBackend($storeId) === false) {
-            $this->logger->log('INDEXING IS DISABLED FOR '.$this->logger->getStoreName($storeId));
+            $this->logger->log('INDEXING IS DISABLED FOR ' . $this->logger->getStoreName($storeId));
 
             return;
         }
@@ -315,7 +312,7 @@ class Data
                 $size = max(count($productIds), $size);
             }
 
-            $this->logger->log('Store '.$this->logger->getStoreName($storeId).' collection size : '.$size);
+            $this->logger->log('Store ' . $this->logger->getStoreName($storeId) . ' collection size : ' . $size);
 
             if ($size > 0) {
                 $pages = ceil($size / $this->configHelper->getNumberOfElementByPage());
@@ -348,7 +345,7 @@ class Data
     public function rebuildStoreSuggestionIndexPage($storeId, $collectionDefault, $page, $pageSize)
     {
         if ($this->configHelper->isEnabledBackend($storeId) === false) {
-            $this->logger->log('INDEXING IS DISABLED FOR '.$this->logger->getStoreName($storeId));
+            $this->logger->log('INDEXING IS DISABLED FOR ' . $this->logger->getStoreName($storeId));
 
             return;
         }
@@ -358,7 +355,7 @@ class Data
         $collection->setCurPage($page)->setPageSize($pageSize);
         $collection->load();
 
-        $index_name = $this->suggestionHelper->getIndexName($storeId).'_tmp';
+        $index_name = $this->suggestionHelper->getIndexName($storeId) . '_tmp';
 
         $indexData = [];
 
@@ -388,12 +385,12 @@ class Data
     public function rebuildStoreCategoryIndexPage($storeId, $collectionDefault, $page, $pageSize)
     {
         if ($this->configHelper->isEnabledBackend($storeId) === false) {
-            $this->logger->log('INDEXING IS DISABLED FOR '.$this->logger->getStoreName($storeId));
+            $this->logger->log('INDEXING IS DISABLED FOR ' . $this->logger->getStoreName($storeId));
 
             return;
         }
 
-        /** @var \Magento\Catalog\Model\ResourceModel\Category\Flat\Collection $collection */
+        /** @var \Magento\Catalog\Model\ResourceModel\Category\Collection $collection */
         $collection = clone $collectionDefault;
         $collection->setCurPage($page)->setPageSize($pageSize);
         $collection->load();
@@ -439,8 +436,8 @@ class Data
             $potentiallyDeletedProductsIds = array_combine($potentiallyDeletedProductsIds, $potentiallyDeletedProductsIds);
         }
 
-        $this->logger->start('CREATE RECORDS '.$this->logger->getStoreName($storeId));
-        $this->logger->log(count($collection).' product records to create');
+        $this->logger->start('CREATE RECORDS ' . $this->logger->getStoreName($storeId));
+        $this->logger->log(count($collection) . ' product records to create');
 
         /** @var Product $product */
         foreach ($collection as $product) {
@@ -456,7 +453,7 @@ class Data
             if (isset($productsToIndex[$productId]) || isset($productsToRemove[$productId])) {
                 continue;
             }
-            
+
             if ($product->isDeleted() === true
                 || $product->getStatus() == Status::STATUS_DISABLED
                 || !in_array((int) $product->getVisibility(), [Product\Visibility::VISIBILITY_BOTH, Product\Visibility::VISIBILITY_IN_SEARCH], true)
@@ -473,7 +470,7 @@ class Data
             $productsToRemove = array_merge($productsToRemove, $potentiallyDeletedProductsIds);
         }
 
-        $this->logger->stop('CREATE RECORDS '.$this->logger->getStoreName($storeId));
+        $this->logger->stop('CREATE RECORDS ' . $this->logger->getStoreName($storeId));
 
         return [
             'toIndex' => $productsToIndex,
@@ -484,12 +481,12 @@ class Data
     public function rebuildStoreProductIndexPage($storeId, $collectionDefault, $page, $pageSize, $emulationInfo = null, $productIds = null, $useTmpIndex = false)
     {
         if ($this->configHelper->isEnabledBackend($storeId) === false) {
-            $this->logger->log('INDEXING IS DISABLED FOR '.$this->logger->getStoreName($storeId));
+            $this->logger->log('INDEXING IS DISABLED FOR ' . $this->logger->getStoreName($storeId));
 
             return;
         }
 
-        $this->logger->start('rebuildStoreProductIndexPage '.$this->logger->getStoreName($storeId).' page '.$page.' pageSize '.$pageSize);
+        $this->logger->start('rebuildStoreProductIndexPage ' . $this->logger->getStoreName($storeId) . ' page ' . $page . ' pageSize ' . $pageSize);
 
         if ($emulationInfo === null) {
             $this->startEmulation($storeId);
@@ -514,27 +511,27 @@ class Data
         $collection->addUrlRewrite();
 
         if ($this->productHelper->isAttributeEnabled($additionalAttributes, 'stock_qty')) {
-            $collection->getSelect()->columns('(SELECT MAX(qty) FROM '.$stockTableName.' AS o LEFT JOIN '.$superTableName.' AS l ON l.product_id = o.product_id WHERE o.product_id = e.entity_id OR l.parent_id = e.entity_id) as stock_qty');
+            $collection->getSelect()->columns('(SELECT MAX(qty) FROM ' . $stockTableName . ' AS o LEFT JOIN ' . $superTableName . ' AS l ON l.product_id = o.product_id WHERE o.product_id = e.entity_id OR l.parent_id = e.entity_id) as stock_qty');
         }
 
         if ($this->productHelper->isAttributeEnabled($additionalAttributes, 'ordered_qty')) {
-            $collection->getSelect()->columns('(SELECT SUM(qty_ordered) FROM '.$ordersTableName.' AS o LEFT JOIN '.$superTableName.' AS l ON l.product_id = o.product_id WHERE o.product_id = e.entity_id OR l.parent_id = e.entity_id) as ordered_qty');
+            $collection->getSelect()->columns('(SELECT SUM(qty_ordered) FROM ' . $ordersTableName . ' AS o LEFT JOIN ' . $superTableName . ' AS l ON l.product_id = o.product_id WHERE o.product_id = e.entity_id OR l.parent_id = e.entity_id) as ordered_qty');
         }
 
         if ($this->productHelper->isAttributeEnabled($additionalAttributes, 'total_ordered')) {
-            $collection->getSelect()->columns('(SELECT SUM(row_total) FROM '.$ordersTableName.' AS o LEFT JOIN '.$superTableName.' AS l ON l.product_id = o.product_id WHERE o.product_id = e.entity_id OR l.parent_id = e.entity_id) as total_ordered');
+            $collection->getSelect()->columns('(SELECT SUM(row_total) FROM ' . $ordersTableName . ' AS o LEFT JOIN ' . $superTableName . ' AS l ON l.product_id = o.product_id WHERE o.product_id = e.entity_id OR l.parent_id = e.entity_id) as total_ordered');
         }
 
         if ($this->productHelper->isAttributeEnabled($additionalAttributes, 'rating_summary')) {
-            $collection->joinField('rating_summary', $reviewTableName, 'rating_summary', 'entity_pk_value=entity_id', '{{table}}.store_id='.$storeId, 'left');
+            $collection->joinField('rating_summary', $reviewTableName, 'rating_summary', 'entity_pk_value=entity_id', '{{table}}.store_id=' . $storeId, 'left');
         }
 
-        $this->logger->start('LOADING '.$this->logger->getStoreName($storeId).' collection page '.$page.', pageSize '.$pageSize);
+        $this->logger->start('LOADING ' . $this->logger->getStoreName($storeId) . ' collection page ' . $page . ', pageSize ' . $pageSize);
 
         $collection->load();
 
-        $this->logger->log('Loaded '.count($collection).' products');
-        $this->logger->stop('LOADING '.$this->logger->getStoreName($storeId).' collection page '.$page.', pageSize '.$pageSize);
+        $this->logger->log('Loaded ' . count($collection) . ' products');
+        $this->logger->stop('LOADING ' . $this->logger->getStoreName($storeId) . ' collection page ' . $page . ', pageSize ' . $pageSize);
 
         $index_name = $this->productHelper->getIndexName($storeId, $useTmpIndex);
 
@@ -545,7 +542,7 @@ class Data
 
             $this->algoliaHelper->addObjects($indexData['toIndex'], $index_name);
 
-            $this->logger->log('Product IDs: '.implode(', ', array_keys($indexData['toIndex'])));
+            $this->logger->log('Product IDs: ' . implode(', ', array_keys($indexData['toIndex'])));
             $this->logger->stop('ADD/UPDATE TO ALGOLIA');
         }
 
@@ -554,7 +551,7 @@ class Data
 
             $this->algoliaHelper->deleteObjects($indexData['toRemove'], $index_name);
 
-            $this->logger->log('Product IDs: '.implode(', ', $indexData['toRemove']));
+            $this->logger->log('Product IDs: ' . implode(', ', $indexData['toRemove']));
             $this->logger->stop('REMOVE FROM ALGOLIA');
         }
 
@@ -569,7 +566,7 @@ class Data
             $this->stopEmulation();
         }
 
-        $this->logger->stop('rebuildStoreProductIndexPage '.$this->logger->getStoreName($storeId).' page '.$page.' pageSize '.$pageSize);
+        $this->logger->stop('rebuildStoreProductIndexPage ' . $this->logger->getStoreName($storeId) . ' page ' . $page . ' pageSize ' . $pageSize);
     }
 
     public function startEmulation($storeId)

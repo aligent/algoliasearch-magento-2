@@ -3,9 +3,9 @@
 namespace Algolia\AlgoliaSearch\Block;
 
 use Algolia\AlgoliaSearch\Helper\ConfigHelper;
-use Magento\Search\Helper\Data as CatalogSearchHelper;
 use Magento\Framework\Data\CollectionDataSourceInterface;
 use Magento\Framework\View\Element\Template;
+use Magento\Search\Helper\Data as CatalogSearchHelper;
 
 class TopSearch extends Template implements CollectionDataSourceInterface
 {

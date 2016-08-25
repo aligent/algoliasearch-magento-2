@@ -1,7 +1,10 @@
 <?php
-    /** @var \Algolia\AlgoliaSearch\Block\Algolia $block */
-    $price_key = $block->getPriceKey();
+
+/** @var \Algolia\AlgoliaSearch\Block\Algolia $block */
+$priceKey = $block->getPriceKey();
+
 ?>
+
 <!-- Product hit template -->
 <script type="text/template" id="autocomplete_products_template">
     <a class="algoliasearch-autocomplete-hit" href="{{url}}">
@@ -27,15 +30,15 @@
             </div>
 
             <div class="algoliasearch-autocomplete-price">
-                    <span class="after_special {{#price<?php echo $price_key; ?>_original_formated}}promotion{{/price<?php echo $price_key; ?>_original_formated}}">
-                        {{price<?php echo $price_key; ?>_formated}}
+                    <span class="after_special {{#price<?php echo $priceKey; ?>_original_formated}}promotion{{/price<?php echo $priceKey; ?>_original_formated}}">
+                        {{price<?php echo $priceKey; ?>_formated}}
                     </span>
 
-                {{#price<?php echo $price_key; ?>_original_formated}}
+                {{#price<?php echo $priceKey; ?>_original_formated}}
                     <span class="before_special">
-                        {{price<?php echo $price_key; ?>_original_formated}}
+                        {{price<?php echo $priceKey; ?>_original_formated}}
                     </span>
-                {{/price<?php echo $price_key; ?>_original_formated}}
+                {{/price<?php echo $priceKey; ?>_original_formated}}
             </div>
         </div>
     </a>

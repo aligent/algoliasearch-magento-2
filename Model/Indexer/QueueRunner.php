@@ -10,7 +10,6 @@ use Algolia\AlgoliaSearch\Helper\ConfigHelper;
 use Algolia\AlgoliaSearch\Model\Queue;
 use Magento;
 use Magento\Framework\Message\ManagerInterface;
-use Magento\Store\Model\StoreManagerInterface;
 
 class QueueRunner implements Magento\Framework\Indexer\ActionInterface, Magento\Framework\Mview\ActionInterface
 {
@@ -35,7 +34,7 @@ class QueueRunner implements Magento\Framework\Indexer\ActionInterface, Magento\
             $errorMessage = 'Algolia reindexing failed: You need to configure your Algolia credentials in Stores > Configuration > Algolia Search.';
 
             if (php_sapi_name() === 'cli') {
-                echo $errorMessage."\n";
+                echo $errorMessage . "\n";
 
                 return;
             }

@@ -38,7 +38,7 @@ class Logger
             return 'undefined store';
         }
 
-        return $storeId.' ('.$this->stores[$storeId].')';
+        return $storeId . ' (' . $this->stores[$storeId] . ')';
     }
 
     public function start($action)
@@ -49,7 +49,7 @@ class Logger
 
         $this->log('');
         $this->log('');
-        $this->log('>>>>> BEGIN '.$action);
+        $this->log('>>>>> BEGIN ' . $action);
         $this->timers[$action] = microtime(true);
     }
 
@@ -60,10 +60,10 @@ class Logger
         }
 
         if (false === isset($this->timers[$action])) {
-            throw new Exception('Algolia Logger => non existing action');
+            throw new \Exception('Algolia Logger => non existing action');
         }
 
-        $this->log('<<<<< END '.$action.' ('.$this->formatTime($this->timers[$action], microtime(true)).')');
+        $this->log('<<<<< END ' . $action . ' (' . $this->formatTime($this->timers[$action], microtime(true)) . ')');
     }
 
     public function log($message)
@@ -75,6 +75,6 @@ class Logger
 
     protected function formatTime($begin, $end)
     {
-        return ($end - $begin).'sec';
+        return ($end - $begin) . 'sec';
     }
 }

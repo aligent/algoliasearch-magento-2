@@ -48,7 +48,7 @@ class Suggestion implements Magento\Framework\Indexer\ActionInterface, Magento\F
             $errorMessage = 'Algolia reindexing failed: You need to configure your Algolia credentials in Stores > Configuration > Algolia Search.';
 
             if (php_sapi_name() === 'cli') {
-                echo $errorMessage."\n";
+                echo $errorMessage . "\n";
 
                 return;
             }

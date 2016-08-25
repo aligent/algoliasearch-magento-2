@@ -20,20 +20,20 @@ class SortOrderCategory extends AbstractTable
                     }
 
                     return $aOptions;
-                }
+                },
             ],
             'searchable' => [
                 'label'  => 'Searchable',
-                'values' => ['1' => 'Yes', '2' => 'No']
+                'values' => ['1' => 'Yes', '2' => 'No'],
             ],
             'retrievable' => [
                 'label'  => 'Retrievable',
-                'values' => ['1' => 'Yes', '2' => 'No']
+                'values' => ['1' => 'Yes', '2' => 'No'],
             ],
             'order' => [
                 'label'  => 'Ordered',
-                'values' => ['ordered' => 'Ordered', 'unordered' => 'Unordered']
-            ]
+                'values' => ['ordered' => 'Ordered', 'unordered' => 'Unordered'],
+            ],
         ];
     }
 }

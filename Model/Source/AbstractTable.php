@@ -93,7 +93,7 @@ abstract class AbstractTable extends AbstractFieldArray
             $columnData = $data[$columnId];
 
             if (isset($columnData['values'])) {
-                $options['option_'.$this->getRenderer($columnId, $columnData)->calcOptionHash($row->getData($columnId))] = 'selected="selected"';
+                $options['option_' . $this->getRenderer($columnId, $columnData)->calcOptionHash($row->getData($columnId))] = 'selected="selected"';
             }
         }
 

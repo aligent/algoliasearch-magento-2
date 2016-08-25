@@ -17,7 +17,7 @@ class SuggestionHelper extends BaseHelper
             'attributesToIndex'    => ['query'],
             'customRanking'        => ['desc(popularity)', 'desc(number_of_results)', 'asc(date)'],
             'typoTolerance'        => false,
-            'attributesToRetrieve' => ['query']
+            'attributesToRetrieve' => ['query'],
         ];
     }
 
@@ -37,7 +37,7 @@ class SuggestionHelper extends BaseHelper
     public function getPopularQueries($storeId)
     {
         $collection = $this->objectManager->create('\Magento\Search\Model\ResourceModel\Query\Collection');
-        $collection->getSelect()->where('num_results >= '.$this->config->getMinNumberOfResults().' AND popularity >= '.$this->config->getMinPopularity().' AND query_text != "__empty__"');
+        $collection->getSelect()->where('num_results >= ' . $this->config->getMinNumberOfResults() . ' AND popularity >= ' . $this->config->getMinPopularity() . ' AND query_text != "__empty__"');
         $collection->getSelect()->limit(12);
         $collection->setOrder('popularity', 'DESC');
         $collection->setOrder('num_results', 'DESC');
@@ -66,7 +66,7 @@ class SuggestionHelper extends BaseHelper
         $collection = $this->objectManager->create('\Magento\Search\Model\ResourceModel\Query\Collection');
         $collection = $collection->addStoreFilter($storeId)->setStoreId($storeId);
 
-        $collection->getSelect()->where('num_results >= '.$this->config->getMinNumberOfResults($storeId).' AND popularity >= '.$this->config->getMinPopularity($storeId).' AND query_text != "__empty__"');
+        $collection->getSelect()->where('num_results >= ' . $this->config->getMinNumberOfResults($storeId) . ' AND popularity >= ' . $this->config->getMinPopularity($storeId) . ' AND query_text != "__empty__"');
 
         return $collection;
     }
