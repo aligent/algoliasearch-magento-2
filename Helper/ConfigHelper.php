@@ -3,10 +3,9 @@
 namespace Algolia\AlgoliaSearch\Helper;
 
 use Magento;
-use Magento\Framework\App\Filesystem\DirectoryList;
-use Magento\Framework\App\ObjectManager;
-use Magento\Framework\Locale\Currency;
 use Magento\Directory\Model\Currency as DirCurrency;
+use Magento\Framework\App\Filesystem\DirectoryList;
+use Magento\Framework\Locale\Currency;
 use Magento\Store\Model\ScopeInterface;
 use Magento\Store\Model\StoreManagerInterface;
 
@@ -80,13 +79,17 @@ class ConfigHelper
     private $storeManager;
     private $dirCurrency;
     private $directoryList;
+    private $moduleResource;
+    private $productMetadata;
 
     public function __construct(Magento\Framework\App\Config\ScopeConfigInterface $configInterface,
                                 Magento\Framework\ObjectManagerInterface $objectManager,
                                 StoreManagerInterface $storeManager,
                                 Currency $currency,
                                 DirCurrency $dirCurrency,
-                                DirectoryList $directoryList)
+                                DirectoryList $directoryList,
+                                Magento\Framework\Module\ResourceInterface $moduleResource,
+                                Magento\Framework\App\ProductMetadata $productMetadata)
     {
         $this->objectManager = $objectManager;
         $this->configInterface = $configInterface;
@@ -94,6 +97,8 @@ class ConfigHelper
         $this->storeManager = $storeManager;
         $this->dirCurrency = $dirCurrency;
         $this->directoryList = $directoryList;
+        $this->moduleResource = $moduleResource;
+        $this->productMetadata = $productMetadata;
     }
 
     public function indexOutOfStockOptions($storeId = null)
@@ -106,9 +111,14 @@ class ConfigHelper
         return $this->configInterface->getValue(self::SHOW_CATS_NOT_INCLUDED_IN_NAVIGATION, ScopeInterface::SCOPE_STORE, $storeId);
     }
 
+    public function getMagentoVersion()
+    {
+        return $this->productMetadata->getVersion();
+    }
+
     public function getExtensionVersion()
     {
-        return "1.0";
+        return $this->moduleResource->getDbVersion('Algolia_AlgoliaSearch');
     }
 
     public function isDefaultSelector($storeId = null)
@@ -338,17 +348,17 @@ class ConfigHelper
             foreach ($attrs as &$attr) {
                 if ($this->isCustomerGroupsEnabled($storeId)) {
                     if (strpos($attr['attribute'], 'price') !== false) {
-                        $suffix_index_name = 'group_'.$group_id;
+                        $suffix_index_name = 'group_' . $group_id;
 
-                        $attr['name'] = $productHelper->getIndexName($storeId).'_'.$attr['attribute'].'_'.$suffix_index_name.'_'.$attr['sort'];
+                        $attr['name'] = $productHelper->getIndexName($storeId) . '_' . $attr['attribute'] . '_' . $suffix_index_name . '_' . $attr['sort'];
                     } else {
-                        $attr['name'] = $productHelper->getIndexName($storeId).'_'.$attr['attribute'].'_'.$attr['sort'];
+                        $attr['name'] = $productHelper->getIndexName($storeId) . '_' . $attr['attribute'] . '_' . $attr['sort'];
                     }
                 } else {
                     if (strpos($attr['attribute'], 'price') !== false) {
-                        $attr['name'] = $productHelper->getIndexName($storeId).'_'.$attr['attribute'].'_'.'default'.'_'.$attr['sort'];
+                        $attr['name'] = $productHelper->getIndexName($storeId) . '_' . $attr['attribute'] . '_' . 'default' . '_' . $attr['sort'];
                     } else {
-                        $attr['name'] = $productHelper->getIndexName($storeId).'_'.$attr['attribute'].'_'.$attr['sort'];
+                        $attr['name'] = $productHelper->getIndexName($storeId) . '_' . $attr['attribute'] . '_' . $attr['sort'];
                     }
                 }
             }
@@ -491,12 +501,12 @@ class ConfigHelper
         $currencies = $this->dirCurrency->getConfigAllowCurrencies();
 
         foreach ($currencies as $currency) {
-            $attributes[] = 'price.'.$currency.'.default';
-            $attributes[] = 'price.'.$currency.'.default_formated';
-            $attributes[] = 'price.'.$currency.'.group_'.$group_id;
-            $attributes[] = 'price.'.$currency.'.group_'.$group_id.'_formated';
-            $attributes[] = 'price.'.$currency.'.special_from_date';
-            $attributes[] = 'price.'.$currency.'.special_to_date';
+            $attributes[] = 'price.' . $currency . '.default';
+            $attributes[] = 'price.' . $currency . '.default_formated';
+            $attributes[] = 'price.' . $currency . '.group_' . $group_id;
+            $attributes[] = 'price.' . $currency . '.group_' . $group_id . '_formated';
+            $attributes[] = 'price.' . $currency . '.special_from_date';
+            $attributes[] = 'price.' . $currency . '.special_to_date';
         }
 
         return ['attributesToRetrieve' => $attributes];
@@ -534,6 +544,6 @@ class ConfigHelper
 
         $baseDirectory = $this->directoryList->getPath(DirectoryList::MEDIA);
 
-        return $baseDirectory.'/algoliasearch_admin_config_uploads/'.$filename;
+        return $baseDirectory . '/algoliasearch_admin_config_uploads/' . $filename;
     }
 }

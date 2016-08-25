@@ -12,7 +12,7 @@
         <tab id="algolia" translate="label" sortOrder="10">
             <label>
                 <![CDATA[
-                    Algolia Search 2.0.alpha
+                    Algolia Search
                 ]]>
             </label>
         </tab>

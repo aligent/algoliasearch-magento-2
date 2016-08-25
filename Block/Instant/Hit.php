@@ -3,9 +3,9 @@
 namespace Algolia\AlgoliaSearch\Block\Instant;
 
 use Algolia\AlgoliaSearch\Helper\ConfigHelper;
+use Magento\Customer\Model\Session;
 use Magento\Framework\Data\Form\FormKey;
 use Magento\Framework\View\Element\Template;
-use Magento\Customer\Model\Session;
 
 class Hit extends Template
 {
@@ -32,7 +32,7 @@ class Hit extends Template
         if ($this->priceKey === null) {
             $groupId = $this->customerSession->getCustomer()->getGroupId();
             $currencyCode = $this->_storeManager->getStore()->getCurrentCurrencyCode();
-            $this->priceKey = $this->config->isCustomerGroupsEnabled($this->_storeManager->getStore()->getStoreId()) ? '.'.$currencyCode.'.group_'.$groupId : '.'.$currencyCode.'.default';
+            $this->priceKey = $this->config->isCustomerGroupsEnabled($this->_storeManager->getStore()->getStoreId()) ? '.' . $currencyCode . '.group_' . $groupId : '.' . $currencyCode . '.default';
         }
 
         return $this->priceKey;

@@ -19,7 +19,7 @@ class Facets extends AbstractTable
                     }
 
                     return $options;
-                }
+                },
             ],
             'type' => [
                 'label'  => 'Facet type',
@@ -27,12 +27,12 @@ class Facets extends AbstractTable
                     'conjunctive' => 'Conjunctive',
                     'disjunctive' => 'Disjunctive',
                     'slider'      => 'Slider',
-                    'priceRanges' => 'Price Ranges'
-                ]
+                    'priceRanges' => 'Price Ranges',
+                ],
             ],
             'label' => [
-                'label' => 'Label'
-            ]
+                'label' => 'Label',
+            ],
         ];
     }
 }

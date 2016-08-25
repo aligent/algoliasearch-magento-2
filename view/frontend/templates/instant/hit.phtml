@@ -1,6 +1,8 @@
 <?php
-    /** @var \Algolia\AlgoliaSearch\Block\Instant\Hit $block */
-    $price_key = $block->getPriceKey();
+
+/** @var \Algolia\AlgoliaSearch\Block\Instant\Hit $block */
+$priceKey = $block->getPriceKey();
+
 ?>
 
 <script type="text/template" id="instant-hit-template">
@@ -26,15 +28,15 @@
                                 <div class="price">
                                     <div class="price-wrapper">
                                         <div>
-                                            <span class="after_special {{#price<?php echo $price_key; ?>_original_formated}}promotion{{/price<?php echo $price_key; ?>_original_formated}}">
-                                                {{price<?php echo $price_key; ?>_formated}}
+                                            <span class="after_special {{#price<?php echo $priceKey; ?>_original_formated}}promotion{{/price<?php echo $priceKey; ?>_original_formated}}">
+                                                {{price<?php echo $priceKey; ?>_formated}}
                                             </span>
 
-                                            {{#price<?php echo $price_key; ?>_original_formated}}
+                                            {{#price<?php echo $priceKey; ?>_original_formated}}
                                                 <span class="before_special">
-                                                    {{price<?php echo $price_key; ?>_original_formated}}
+                                                    {{price<?php echo $priceKey; ?>_original_formated}}
                                                 </span>
-                                            {{/price<?php echo $price_key; ?>_original_formated}}
+                                            {{/price<?php echo $priceKey; ?>_original_formated}}
                                         </div>
                                     </div>
                                 </div>

@@ -23,8 +23,8 @@ class CustomPages extends AbstractTable
                     }
 
                     return $options;
-                }
-            ]
+                },
+            ],
         ];
     }
 }

@@ -86,7 +86,7 @@ class Algolia extends Template implements \Magento\Framework\Data\CollectionData
         if ($this->priceKey === null) {
             $groupId = $this->customerSession->getCustomer()->getGroupId();
             $currencyCode = $this->getCurrencyCode();
-            $this->priceKey = $this->config->isCustomerGroupsEnabled($this->_storeManager->getStore()->getStoreId()) ? '.'.$currencyCode.'.group_'.$groupId : '.'.$currencyCode.'.default';
+            $this->priceKey = $this->config->isCustomerGroupsEnabled($this->_storeManager->getStore()->getStoreId()) ? '.' . $currencyCode . '.group_' . $groupId : '.' . $currencyCode . '.default';
         }
 
         return $this->priceKey;

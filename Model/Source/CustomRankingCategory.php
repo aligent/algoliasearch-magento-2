@@ -20,12 +20,12 @@ class CustomRankingCategory extends AbstractTable
                     }
 
                     return $options;
-                }
+                },
             ],
             'order' => [
                 'label'  => 'Order',
-                'values' => ['asc' => 'Ascending', 'desc' => 'Descending']
-            ]
+                'values' => ['asc' => 'Ascending', 'desc' => 'Descending'],
+            ],
         ];
     }
 }

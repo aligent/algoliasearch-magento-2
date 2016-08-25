@@ -5,12 +5,13 @@ namespace Algolia\AlgoliaSearch\Helper\Entity;
 use Algolia\AlgoliaSearch\Helper\AlgoliaHelper;
 use Algolia\AlgoliaSearch\Helper\ConfigHelper;
 use Algolia\AlgoliaSearch\Helper\Logger;
+use Magento\Catalog\Helper\Data as CatalogHelper;
 use Magento\Catalog\Model\Product\Visibility;
 use Magento\CatalogInventory\Api\StockRegistryInterface;
 use Magento\CatalogInventory\Helper\Stock;
 use Magento\Cms\Model\Template\FilterProvider;
-use Magento\Directory\Model\Currency;
 use Magento\Directory\Helper\Data as CurrencyDirectory;
+use Magento\Directory\Model\Currency;
 use Magento\Directory\Model\Currency as CurrencyHelper;
 use Magento\Directory\Model\CurrencyFactory;
 use Magento\Eav\Model\Config;
@@ -19,7 +20,6 @@ use Magento\Framework\Event\ManagerInterface;
 use Magento\Framework\ObjectManagerInterface;
 use Magento\Framework\Url;
 use Magento\Store\Model\StoreManagerInterface;
-use Magento\Catalog\Helper\Data as CatalogHelper;
 use Magento\Tax\Helper\Data;
 
 abstract class BaseHelper
@@ -92,12 +92,12 @@ abstract class BaseHelper
 
     public function getBaseIndexName($storeId = null)
     {
-        return (string) $this->config->getIndexPrefix($storeId).$this->storeManager->getStore($storeId)->getCode();
+        return (string) $this->config->getIndexPrefix($storeId) . $this->storeManager->getStore($storeId)->getCode();
     }
 
     public function getIndexName($storeId = null, $tmp = false)
     {
-        return (string) $this->getBaseIndexName($storeId).$this->getIndexNameSuffix().($tmp ? '_tmp' : '');
+        return (string) $this->getBaseIndexName($storeId) . $this->getIndexNameSuffix() . ($tmp ? '_tmp' : '');
     }
 
     protected function try_cast($value)
@@ -184,12 +184,12 @@ abstract class BaseHelper
         $storeId = intval($storeId);
         $categoryId = intval($categoryId);
         $path = null;
-        $key = $storeId.'-'.$categoryId;
+        $key = $storeId . '-' . $categoryId;
 
         if (isset($categories[$key])) {
             $path = ($categories[$key]['value'] == 1) ? strval($categories[$key]['path']) : null;
         } elseif ($storeId !== 0) {
-            $key = '0-'.$categoryId;
+            $key = '0-' . $categoryId;
 
             if (isset($categories[$key])) {
                 $path = ($categories[$key]['value'] == 1) ? strval($categories[$key]['path']) : null;
@@ -257,7 +257,7 @@ abstract class BaseHelper
 
         $categoryName = null;
 
-        $key = $storeId.'-'.$categoryId;
+        $key = $storeId . '-' . $categoryId;
 
         if (isset(self::$_categoryNames[$key])) {
             // Check whether the category name is present for the specified store
@@ -266,7 +266,7 @@ abstract class BaseHelper
         } elseif ($storeId != 0) {
             // Check whether the category name is present for the default store
 
-            $key = '0-'.$categoryId;
+            $key = '0-' . $categoryId;
 
             if (isset(self::$_categoryNames[$key])) {
                 $categoryName = strval(self::$_categoryNames[$key]);

@@ -35,15 +35,15 @@ class Sections extends AbstractTable
                     }
 
                     return $options;
-                }
+                },
             ],
             'label' => [
-                'label' => 'Label'
+                'label' => 'Label',
             ],
             'hitsPerPage' => [
                 'label' => 'Hits per page',
-                'class' => 'validate-digits'
-            ]
+                'class' => 'validate-digits',
+            ],
         ];
     }
 }

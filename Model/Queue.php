@@ -5,7 +5,6 @@ namespace Algolia\AlgoliaSearch\Model;
 use Algolia\AlgoliaSearch\Helper\ConfigHelper;
 use Algolia\AlgoliaSearch\Helper\Logger;
 use Magento\Framework\App\ResourceConnection;
-use Magento\Framework\Module\ResourceInterface;
 use Magento\Framework\ObjectManagerInterface;
 
 class Queue
@@ -110,7 +109,7 @@ class Queue
         $pid = getmypid();
 
         // Reserve all new jobs since last run
-        $this->db->query("UPDATE {$this->db->quoteIdentifier($this->table, true)} SET pid = ".$pid.' WHERE job_id >= '.$first_id." AND job_id <= $last_id");
+        $this->db->query("UPDATE {$this->db->quoteIdentifier($this->table, true)} SET pid = " . $pid . ' WHERE job_id >= ' . $first_id . " AND job_id <= $last_id");
 
         foreach ($jobs as &$job) {
             $job['data'] = json_decode($job['data'], true);
@@ -129,8 +128,8 @@ class Queue
                 call_user_func_array([$model, $method], $data);
             } catch (\Exception $e) {
                 // Increment retries and log error information
-                $this->logger->log("Queue processing {$job['pid']} [KO]: Mage::getSingleton({$job['class']})->{$job['method']}(".json_encode($job['data']).')');
-                $this->logger->log(date('c').' ERROR: '.get_class($e).": '{$e->getMessage()}' in {$e->getFile()}:{$e->getLine()}\n"."Stack trace:\n".$e->getTraceAsString());
+                $this->logger->log("Queue processing {$job['pid']} [KO]: Mage::getSingleton({$job['class']})->{$job['method']}(" . json_encode($job['data']) . ')');
+                $this->logger->log(date('c') . ' ERROR: ' . get_class($e) . ": '{$e->getMessage()}' in {$e->getFile()}:{$e->getLine()}\n" . "Stack trace:\n" . $e->getTraceAsString());
             }
         }
 

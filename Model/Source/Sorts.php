@@ -22,18 +22,18 @@ class Sorts extends AbstractTable
                     }
 
                     return $options;
-                }
+                },
             ],
             'sort' => [
                 'label'  => 'Sort',
                 'values' => [
                     'asc'  => 'Ascending',
-                    'desc' => 'Descending'
-                ]
+                    'desc' => 'Descending',
+                ],
             ],
             'label' => [
-                'label' => 'Label'
-            ]
+                'label' => 'Label',
+            ],
         ];
     }
 }
