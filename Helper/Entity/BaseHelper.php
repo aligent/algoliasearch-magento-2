@@ -21,6 +21,7 @@ use Magento\Framework\ObjectManagerInterface;
 use Magento\Framework\Url;
 use Magento\Store\Model\StoreManagerInterface;
 use Magento\Tax\Helper\Data;
+use Magento\Framework\Module\Manager as ModuleManager;
 
 abstract class BaseHelper
 {
@@ -45,6 +46,7 @@ abstract class BaseHelper
     protected $queryResource;
     protected $filterProvider;
     protected $currencyFactory;
+    protected $moduleManager;
 
     protected $storeUrls;
 
@@ -67,7 +69,8 @@ abstract class BaseHelper
                                 ResourceConnection $queryResource,
                                 Currency $currencyManager,
                                 FilterProvider $filterProvider,
-                                CurrencyFactory $currencyFactory)
+                                CurrencyFactory $currencyFactory,
+                                ModuleManager $moduleManager)
     {
         $this->eavConfig = $eavConfig;
         $this->config = $configHelper;
@@ -98,6 +101,15 @@ abstract class BaseHelper
     public function getIndexName($storeId = null, $tmp = false)
     {
         return (string) $this->getBaseIndexName($storeId) . $this->getIndexNameSuffix() . ($tmp ? '_tmp' : '');
+    }
+
+    protected function getJoinAttribute()
+    {
+        if ($this->moduleManager->isEnabled('Magento_CatalogStaging')) {
+            return 'row_id';
+        } else {
+            return 'entity_id';
+        }
     }
 
     protected function try_cast($value)
@@ -207,14 +219,16 @@ abstract class BaseHelper
             /** @var \Magento\Catalog\Model\ResourceModel\Category $resource */
             $resource = $this->objectManager->create('\Magento\Catalog\Model\ResourceModel\Category');
 
+            $joinAttribute = $this->getJoinAttribute();
+
             if ($attribute = $resource->getAttribute('is_active')) {
                 $connection = $this->queryResource->getConnection();
                 $select = $connection->select()
-                    ->from(['backend' => $attribute->getBackendTable()], ['key' => new \Zend_Db_Expr("CONCAT(backend.store_id, '-', backend.entity_id)"), 'category.path', 'backend.value'])
-                    ->join(['category' => $resource->getTable('catalog_category_entity')], 'backend.entity_id = category.entity_id', [])
+                    ->from(['backend' => $attribute->getBackendTable()], ['key' => new \Zend_Db_Expr("CONCAT(backend.store_id, '-', backend.$joinAttribute)"), 'category.path', 'backend.value'])
+                    ->join(['category' => $resource->getTable('catalog_category_entity')], "backend.$joinAttribute = category.$joinAttribute", [])
                     ->where('backend.attribute_id = ?', $attribute->getAttributeId())
                     ->order('backend.store_id')
-                    ->order('backend.entity_id');
+                    ->order("backend.$joinAttribute");
 
                 self::$_activeCategories = $connection->fetchAssoc($select);
             }
@@ -242,12 +256,14 @@ abstract class BaseHelper
             /** @var \Magento\Catalog\Model\ResourceModel\Category $categoryModel */
             $categoryModel = $this->objectManager->create('\Magento\Catalog\Model\ResourceModel\Category');
 
+            $joinAttribute = $this->getJoinAttribute();
+
             if ($attribute = $categoryModel->getAttribute('name')) {
                 $connection = $this->queryResource->getConnection();
 
                 $select = $connection->select()
-                    ->from(['backend' => $attribute->getBackendTable()], [new \Zend_Db_Expr("CONCAT(backend.store_id, '-', backend.entity_id)"), 'backend.value'])
-                    ->join(['category' => $categoryModel->getTable('catalog_category_entity')], 'backend.entity_id = category.entity_id', [])
+                    ->from(['backend' => $attribute->getBackendTable()], [new \Zend_Db_Expr("CONCAT(backend.store_id, '-', backend.$joinAttribute)"), 'backend.value'])
+                    ->join(['category' => $categoryModel->getTable('catalog_category_entity')], "backend.$joinAttribute = category.$joinAttribute", [])
                     ->where('backend.attribute_id = ?', $attribute->getAttributeId())
                     ->where('category.level > ?', 1);
 
