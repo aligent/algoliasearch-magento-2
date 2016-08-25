@@ -91,6 +91,7 @@ abstract class BaseHelper
         $this->queryResource = $queryResource;
         $this->filterProvider = $filterProvider;
         $this->currencyFactory = $currencyFactory;
+        $this->moduleManager = $moduleManager;
     }
 
     public function getBaseIndexName($storeId = null)
