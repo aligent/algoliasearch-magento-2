@@ -118,7 +118,7 @@ class Data
         $this->productHelper->setSettings($storeId, $useTmpIndex);
     }
 
-    public function getSearchResult($query, $storeId)
+    public function getSearchResult($query, $storeId, $params = [])
     {
         $resultsLimit = $this->configHelper->getResultsLimit($storeId);
 
@@ -133,7 +133,7 @@ class Data
         $data = [];
         
         try {
-            $answer = $this->algoliaHelper->query($index_name, $query, [
+            $defaultParams = [
                 'hitsPerPage' => $number_of_results, // retrieve all the hits (hard limit is 1000)
                 'attributesToRetrieve' => 'objectID',
                 'attributesToHighlight' => '',
@@ -141,7 +141,11 @@ class Data
                 'numericFilters' => 'visibility_search=1',
                 'removeWordsIfNoResults' => $this->configHelper->getRemoveWordsIfNoResult($storeId),
                 'analyticsTags' => 'backend-search',
-            ]);
+            ];
+
+            $params = array_merge($defaultParams, $params);
+
+            $answer = $this->algoliaHelper->query($index_name, $query, $params);
             
             foreach ($answer['hits'] as $i => $hit) {
                 $productId = $hit['objectID'];
