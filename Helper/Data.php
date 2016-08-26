@@ -130,27 +130,33 @@ class Data
             $number_of_results = min($this->configHelper->getNumberOfProductResults($storeId), 1000);
         }
 
-        $answer = $this->algoliaHelper->query($index_name, $query, [
-            'hitsPerPage'            => $number_of_results, // retrieve all the hits (hard limit is 1000)
-            'attributesToRetrieve'   => 'objectID',
-            'attributesToHighlight'  => '',
-            'attributesToSnippet'    => '',
-            'numericFilters'         => 'visibility_search=1',
-            'removeWordsIfNoResults' => $this->configHelper->getRemoveWordsIfNoResult($storeId),
-            'analyticsTags'          => 'backend-search',
-        ]);
-
         $data = [];
+        
+        try {
+            $answer = $this->algoliaHelper->query($index_name, $query, [
+                'hitsPerPage' => $number_of_results, // retrieve all the hits (hard limit is 1000)
+                'attributesToRetrieve' => 'objectID',
+                'attributesToHighlight' => '',
+                'attributesToSnippet' => '',
+                'numericFilters' => 'visibility_search=1',
+                'removeWordsIfNoResults' => $this->configHelper->getRemoveWordsIfNoResult($storeId),
+                'analyticsTags' => 'backend-search',
+            ]);
+            
+            foreach ($answer['hits'] as $i => $hit) {
+                $productId = $hit['objectID'];
 
-        foreach ($answer['hits'] as $i => $hit) {
-            $productId = $hit['objectID'];
-
-            if ($productId) {
-                $data[$productId] = [
-                    'entity_id' => $productId,
-                    'score'     => $resultsLimit - $i,
-                ];
+                if ($productId) {
+                    $data[$productId] = [
+                        'entity_id' => $productId,
+                        'score' => $resultsLimit - $i,
+                    ];
+                }
             }
+        } catch (\AlgoliaSearch\AlgoliaException $e) {
+            
+        } catch (\Exception $e) {
+            
         }
 
         return $data;
