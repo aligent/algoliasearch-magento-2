@@ -12,7 +12,7 @@ class Facets extends AbstractTable
             'attribute' => [
                 'label'  => 'Attribute',
                 'values' => function () use ($productHelper) {
-                    $options = [];
+                    $options = ['price' => 'price'];
 
                     foreach ($productHelper->getAdditionalAttributes() as $attribute) {
                         $options[$attribute['attribute']] = $attribute['attribute'];
