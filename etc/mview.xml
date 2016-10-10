@@ -15,29 +15,35 @@
     <view id="algolia_queue_runner" class="Algolia\AlgoliaSearch\Model\Indexer\QueueRunner" group="indexer">
     </view>
     <view id="algolia_categories" class="Algolia\AlgoliaSearch\Model\Indexer\Category" group="indexer">
+    </view>
+    <view id="algolia_category_rows" class="Algolia\AlgoliaSearch\Model\Indexer\CategoryRow" group="indexer">
         <subscriptions>
-            <table name="catalog_category_entity" entity_column="entity_id" />
-            <table name="catalog_category_entity_decimal" entity_column="entity_id" />
-            <table name="catalog_category_entity_int" entity_column="entity_id" />
-            <table name="catalog_category_entity_text" entity_column="entity_id" />
-            <table name="catalog_category_entity_varchar" entity_column="entity_id" />
-            <table name="catalog_category_entity_datetime" entity_column="entity_id" />
+            <table name="catalog_category_entity" entity_column="row_id" />
+            <table name="catalog_category_entity_decimal" entity_column="row_id" />
+            <table name="catalog_category_entity_int" entity_column="row_id" />
+            <table name="catalog_category_entity_text" entity_column="row_id" />
+            <table name="catalog_category_entity_varchar" entity_column="row_id" />
+            <table name="catalog_category_entity_datetime" entity_column="row_id" />
         </subscriptions>
     </view>
     <view id="algolia_products" class="Algolia\AlgoliaSearch\Model\Indexer\Product" group="indexer">
         <subscriptions>
-            <table name="catalog_product_entity" entity_column="entity_id" />
-            <table name="catalog_product_entity_datetime" entity_column="entity_id" />
-            <table name="catalog_product_entity_decimal" entity_column="entity_id" />
-            <table name="catalog_product_entity_gallery" entity_column="entity_id" />
-            <table name="catalog_product_entity_int" entity_column="entity_id" />
-            <table name="catalog_product_entity_media_gallery" entity_column="value_id" />
-            <table name="catalog_product_entity_media_gallery_value" entity_column="entity_id" />
-            <table name="catalog_product_entity_text" entity_column="entity_id" />
-            <table name="catalog_product_entity_tier_price" entity_column="entity_id" />
-            <table name="catalog_product_entity_varchar" entity_column="entity_id" />
             <table name="catalog_product_website" entity_column="product_id" />
             <table name="catalog_category_product" entity_column="product_id" />
+        </subscriptions>
+    </view>
+    <view id="algolia_product_rows" class="Algolia\AlgoliaSearch\Model\Indexer\ProductRow" group="indexer">
+        <subscriptions>
+            <table name="catalog_product_entity" entity_column="row_id" />
+            <table name="catalog_product_entity_datetime" entity_column="row_id" />
+            <table name="catalog_product_entity_decimal" entity_column="row_id" />
+            <table name="catalog_product_entity_gallery" entity_column="row_id" />
+            <table name="catalog_product_entity_int" entity_column="row_id" />
+            <table name="catalog_product_entity_media_gallery_value" entity_column="row_id" />
+            <table name="catalog_product_entity_media_gallery_value_to_entity" entity_column="row_id" />
+            <table name="catalog_product_entity_text" entity_column="row_id" />
+            <table name="catalog_product_entity_tier_price" entity_column="row_id" />
+            <table name="catalog_product_entity_varchar" entity_column="row_id" />
         </subscriptions>
     </view>
 </config>

@@ -18,6 +18,18 @@
             Rebuild categories index.
         </description>
     </indexer>
+    <indexer id="algolia_product_rows" view_id="algolia_product_rows" class="Algolia\AlgoliaSearch\Model\Indexer\ProductRow">
+        <title translate="true">Algolia Search Product Rows</title>
+        <description translate="true">
+            Rebuild enterprise products index.
+        </description>
+    </indexer>
+    <indexer id="algolia_category_rows" view_id="algolia_category_rows" class="Algolia\AlgoliaSearch\Model\Indexer\CategoryRow">
+        <title translate="true">Algolia Search Category Rows</title>
+        <description translate="true">
+            Rebuild enterprise categories index.
+        </description>
+    </indexer>
     <indexer id="algolia_pages" view_id="algolia_pages" class="Algolia\AlgoliaSearch\Model\Indexer\Page">
         <title translate="true">Algolia Search Pages</title>
         <description translate="true">
@@ -31,7 +43,7 @@
         </description>
     </indexer>
     <indexer id="algolia_additional_sections" view_id="algolia_additional_sections" class="Algolia\AlgoliaSearch\Model\Indexer\AdditionalSection">
-        <title translate="true">Algolia Search Suggestions</title>
+        <title translate="true">Algolia Search Additional Sections</title>
         <description translate="true">
             Rebuild additional sections index.
         </description>

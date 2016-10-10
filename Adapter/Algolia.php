@@ -8,6 +8,8 @@ namespace Algolia\AlgoliaSearch\Adapter;
 
 use Algolia\AlgoliaSearch\Helper\ConfigHelper;
 use Algolia\AlgoliaSearch\Helper\Data as AlgoliaHelper;
+use Algolia\AlgoliaSearch\Helper\FacetHelper;
+use Magento\Catalog\Api\CategoryRepositoryInterface;
 use Magento\CatalogSearch\Helper\Data;
 use Magento\Framework\App\Request\Http;
 use Magento\Framework\App\ResourceConnection;
@@ -18,6 +20,8 @@ use Magento\Framework\Search\Adapter\Mysql\Mapper;
 use Magento\Framework\Search\Adapter\Mysql\ResponseFactory;
 use Magento\Framework\Search\Adapter\Mysql\TemporaryStorageFactory;
 use Magento\Framework\Search\AdapterInterface;
+use Magento\Framework\Search\Request\FilterInterface;
+use Magento\Framework\Search\Request\QueryInterface;
 use Magento\Framework\Search\RequestInterface;
 use Magento\Store\Model\StoreManagerInterface;
 
@@ -75,6 +79,9 @@ class Algolia implements AdapterInterface
 
     protected $documentFactory;
 
+    /** @var FacetHelper */
+    protected $facetHelper;
+
     /**
      * @param Mapper                  $mapper
      * @param ResponseFactory         $responseFactory
@@ -93,7 +100,8 @@ class Algolia implements AdapterInterface
         StoreManagerInterface $storeManager,
         AlgoliaHelper $algoliaHelper,
         Http $request,
-        DocumentFactory $documentFactory
+        DocumentFactory $documentFactory,
+        FacetHelper $facetHelper
     ) {
         $this->mapper = $mapper;
         $this->responseFactory = $responseFactory;
@@ -106,6 +114,7 @@ class Algolia implements AdapterInterface
         $this->algoliaHelper = $algoliaHelper;
         $this->request = $request;
         $this->documentFactory = $documentFactory;
+        $this->facetHelper = $facetHelper;
     }
 
     /**
@@ -128,11 +137,12 @@ class Algolia implements AdapterInterface
             $table = $temporaryStorage->storeDocumentsFromSelect($query);
             $documents = $this->getDocuments($table);
         } else {
-            $algolia_query = $query !== '__empty__' ? $query : '';
 
             //If instant search is on, do not make a search query unless SEO request is set to 'Yes'
             if (!$this->config->isInstantEnabled($storeId) || $this->config->makeSeoRequest($storeId)) {
-                $documents = $this->algoliaHelper->getSearchResult($algolia_query, $storeId);
+                $algoliaQuery = $query !== '__empty__' ? $query : '';
+                $algoliaParams = $this->facetHelper->getAlgoliaParams($request->getQuery(), $storeId);
+                $documents = $this->algoliaHelper->getSearchResult($algoliaQuery, $storeId, $algoliaParams);
             }
 
             $getDocumentMethod = 'getDocument21';
@@ -194,4 +204,6 @@ class Algolia implements AdapterInterface
     {
         return $this->documentFactory->create($document);
     }
+
+    
 }

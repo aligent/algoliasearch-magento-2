@@ -60,44 +60,45 @@ class Product implements Magento\Framework\Indexer\ActionInterface, Magento\Fram
             if (is_array($productIds) && count($productIds) > 0) {
                 $this->queue->addToQueue($this->fullAction, 'rebuildStoreProductIndex', ['store_id' => $storeId, 'product_ids' => $productIds], count($productIds));
 
-                return;
-            }
+                //return;
+            } else {
 
-            $useTmpIndex = $this->configHelper->isQueueActive($storeId);
+                $useTmpIndex = $this->configHelper->isQueueActive($storeId);
 
-            $collection = $this->productHelper->getProductCollectionQuery($storeId, $productIds, $useTmpIndex);
-            $size = $collection->getSize();
+                $collection = $this->productHelper->getProductCollectionQuery($storeId, $productIds, $useTmpIndex);
+                $size = $collection->getSize();
 
-            if (!empty($productIds)) {
-                $size = max(count($productIds), $size);
-            }
+                if (!empty($productIds)) {
+                    $size = max(count($productIds), $size);
+                }
 
-            $productsPerPage = $this->configHelper->getNumberOfElementByPage();
-            $pages = ceil($size / $productsPerPage);
+                $productsPerPage = $this->configHelper->getNumberOfElementByPage();
+                $pages = ceil($size / $productsPerPage);
 
-            $this->queue->addToQueue($this->fullAction, 'saveConfigurationToAlgolia', [
-                'store_id' => $storeId,
-                'useTmpIndex' => $useTmpIndex,
-            ]);
-
-            for ($i = 1; $i <= $pages; $i++) {
-                $data = [
+                $this->queue->addToQueue($this->fullAction, 'saveConfigurationToAlgolia', [
                     'store_id' => $storeId,
-                    'product_ids' => $productIds,
-                    'page' => $i,
-                    'page_size' => $productsPerPage,
                     'useTmpIndex' => $useTmpIndex,
-                ];
-
-                $this->queue->addToQueue($this->fullAction, 'rebuildProductIndex', $data, $productsPerPage);
-            }
-
-            if ($useTmpIndex) {
-                $this->queue->addToQueue($this->fullAction, 'moveIndex', [
-                    'tmpIndexName' => $this->productHelper->getIndexName($storeId, true),
-                    'indexName' => $this->productHelper->getIndexName($storeId, false),
-                    'store_id' => $storeId,
                 ]);
+
+                for ($i = 1; $i <= $pages; $i++) {
+                    $data = [
+                        'store_id' => $storeId,
+                        'product_ids' => $productIds,
+                        'page' => $i,
+                        'page_size' => $productsPerPage,
+                        'useTmpIndex' => $useTmpIndex,
+                    ];
+
+                    $this->queue->addToQueue($this->fullAction, 'rebuildProductIndex', $data, $productsPerPage);
+                }
+
+                if ($useTmpIndex) {
+                    $this->queue->addToQueue($this->fullAction, 'moveIndex', [
+                        'tmpIndexName' => $this->productHelper->getIndexName($storeId, true),
+                        'indexName' => $this->productHelper->getIndexName($storeId, false),
+                        'store_id' => $storeId,
+                    ]);
+                }
             }
         }
     }
