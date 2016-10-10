@@ -3,8 +3,10 @@ namespace Algolia\AlgoliaSearch\Helper;
 
 use Magento\Catalog\Api\CategoryRepositoryInterface;
 use Magento\Catalog\Api\Data\CategoryInterface;
+use Magento\Eav\Api\AttributeRepositoryInterface;
 use Magento\Framework\App\Helper\AbstractHelper;
 use Magento\Framework\App\Helper\Context;
+use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Framework\Search\Request\Filter\Range as RangeFilter;
 use Magento\Framework\Search\Request\Filter\Term as TermFilter;
 use Magento\Framework\Search\Request\Query\BoolExpression;
@@ -14,6 +16,13 @@ use Magento\Store\Model\StoreManagerInterface;
 
 class FacetHelper extends AbstractHelper
 {
+    /** Max to use if numeric filter has no explicit max set */
+    const MAX_RANGE = 99999999;
+
+    protected $attributes = [];
+
+    protected $categories = [];
+
     /**
      * @var CategoryRepositoryInterface
      */
@@ -25,19 +34,45 @@ class FacetHelper extends AbstractHelper
     protected $storeManager;
 
     /**
+     * @var AttributeRepositoryInterface
+     */
+    protected $attributeRepository;
+
+    /**
      * FacetHelper constructor.
      * @param Context $context
      * @param CategoryRepositoryInterface $categoryRepository
      * @param StoreManagerInterface $storeManager
+     * @param AttributeRepositoryInterface $attributeRepository
      */
     public function __construct(
         Context $context,
         CategoryRepositoryInterface $categoryRepository,
-        StoreManagerInterface $storeManager
+        StoreManagerInterface $storeManager,
+        AttributeRepositoryInterface $attributeRepository
     ) {
         $this->categoryRepository = $categoryRepository;
         $this->storeManager = $storeManager;
+        $this->attributeRepository = $attributeRepository;
         parent::__construct($context);
+    }
+
+    protected function getAttributeText($attributeCode, $attributeValue)
+    {
+        if (!array_key_exists($attributeCode, $this->attributes)) {
+            try {
+                $attribute = $this->attributeRepository->get('catalog_product', $attributeCode);
+                $this->attributes[$attributeCode] = $attribute;
+            } catch (NoSuchEntityException $e) {
+                return $attributeValue;
+            }
+        }
+        $attribute = $this->attributes[$attributeCode];
+        if ($attribute && $attribute->getSource()) {
+            $text = $attribute->getSource()->getOptionText($attributeValue);
+            return $text !== false ? $text : $attributeValue;
+        }
+        return $attributeValue;
     }
 
     public function getAlgoliaParams(QueryInterface $query, $storeId = null)
@@ -46,7 +81,7 @@ class FacetHelper extends AbstractHelper
         if ($query->getType() == QueryInterface::TYPE_BOOL) {
             /** @var BoolExpression $query */
             foreach ($query->getMust() as $must) {
-                $result = array_merge($result, $this->getAlgoliaParams($must, $storeId));
+                $result = array_merge_recursive($result, $this->getAlgoliaParams($must, $storeId));
             }
 
             foreach ($query->getMustNot() as $mustNot) {
@@ -54,11 +89,11 @@ class FacetHelper extends AbstractHelper
             }
 
             foreach ($query->getShould() as $should) {
-                $result = array_merge($result, $this->getAlgoliaParams($should, $storeId));
+                $result = array_merge_recursive($result, $this->getAlgoliaParams($should, $storeId));
             }
 
         } elseif ($query->getType() == QueryInterface::TYPE_MATCH) {
-            //TODO: 
+            //TODO: Figure out what a match query is
         } elseif ($query->getType() == QueryInterface::TYPE_FILTER) {
             /** @var FilterQuery $query */
             $reference = $query->getReference();
@@ -68,27 +103,22 @@ class FacetHelper extends AbstractHelper
                     $value = $reference->getValue();
 
                     if ($reference->getField() === 'category_ids') {
-                        $result['facetFilters'][] = $this->getCategoryFacetFilter($value, $storeId);
-                    } elseif (is_array($reference->getValue())) {
-                        //TODO: Add a way to perform disjunctive searches
-//                        if (array_key_exists('in', $value)) {
-//                            foreach ($value['in'] as $individualValue) {
-//                                $result['facetFilters'][] = $reference->getField() . ":$individualValue";
-//                            }
-//                            $result['disjunctiveFacets'][] = $reference->getField();
-//                        }
+                        $result['filters'][] = $this->getCategoryFacetFilter($value, $storeId);
+                    } elseif (is_array($value)) {
+                        if (array_key_exists('in', $value)) {
+                            $disjunctiveFilter = [];
+                            foreach ($value['in'] as $individualValue) {
+                                $valueText = $this->getAttributeText($reference->getField(), $individualValue);
+                                $disjunctiveFilter[] = $reference->getField() . ":\"$valueText\"";
+                            }
+                            $result['filters'][] = implode(" OR ", $disjunctiveFilter);
+                        }
                     } else {
-                        $result['facetFilters'][] = $reference->getField() . ":$value";
+                        $result['filters'][] = $reference->getField() . ":\"$value\"";
                     }
                 } elseif ($reference instanceof RangeFilter) {
-                    if ($reference->getField() === 'price') {
-                        if ($reference->getFrom() !== null) {
-                            $result['numericFilters'][] = $this->getPriceFacetFilter($reference->getFrom(), '>=', $storeId);
-                        }
-                        if ($reference->getTo() !== null) {
-                            $result['numericFilters'][] = $this->getPriceFacetFilter($reference->getTo(), '<', $storeId);
-                        }
-                    }
+                    $field = $reference->getField() == 'price' ? $this->getPriceFacetFilter($storeId) : $reference->getField();
+                    $result['filters'][] = $field . ":" . ($reference->getFrom() ?: 0) . " TO " . ($reference->getTo() ?: self::MAX_RANGE);
                 }
             }
         }
@@ -103,39 +133,43 @@ class FacetHelper extends AbstractHelper
      */
     public function getCategoryFacetFilter($categoryId, $storeId)
     {
-        /** @var CategoryInterface $category */
-        $category = $this->categoryRepository->get($categoryId, $storeId);
-        $path = $category->getPath();
-        $facetArray = [];
+        $key = "$categoryId-$storeId";
 
-        $pathArray = explode('/', $path);
+        if (!array_key_exists($key, $this->categories)) {
+            /** @var CategoryInterface $category */
+            $category = $this->categoryRepository->get($categoryId, $storeId);
+            $path = $category->getPath();
+            $facetArray = [];
 
-        //Remove everything up to the root category for the store
-        $rootCategoryId = $this->storeManager->getStore($storeId)->getRootCategoryId();
-        $rootIndex = array_search($rootCategoryId, $pathArray);
-        if ($rootIndex !== false) {
-            $pathArray = array_slice($pathArray, $rootIndex + 1);
+            $pathArray = explode('/', $path);
+
+            //Remove everything up to the root category for the store
+            $rootCategoryId = $this->storeManager->getStore($storeId)->getRootCategoryId();
+            $rootIndex = array_search($rootCategoryId, $pathArray);
+            if ($rootIndex !== false) {
+                $pathArray = array_slice($pathArray, $rootIndex + 1);
+            }
+
+            foreach ($pathArray as $pathPart) {
+                $category = $this->categoryRepository->get($pathPart, $storeId);
+                $facetArray[] = $category->getName();
+            }
+
+            //The actual level in Algolia is the level of the category underneath the root category, starting with 0
+            //E.g. a category directly underneath the root category is level 0
+            $level = count($facetArray) - 1;
+
+            //Algolia categories stored with separator of ' /// '
+            $facet = implode(' /// ', $facetArray);
+
+            $this->categories[$key] = "categories.level$level:\"$facet\"";
         }
 
-        foreach ($pathArray as $pathPart) {
-            $category = $this->categoryRepository->get($pathPart, $storeId);
-            $facetArray[] = $category->getName();
-        }
-
-        //The actual level in Algolia is the level of the category underneath the root category, starting with 0
-        //E.g. a category directly underneath the root category is level 0
-        $level = count($facetArray) - 1;
-
-        //Algolia categories stored with separator of ' /// '
-        $facet = implode(' /// ', $facetArray);
-
-        return "categories.level$level:$facet";
+        return $this->categories[$key];
     }
 
-    public function getPriceFacetFilter($price, $operation, $storeId)
+    public function getPriceFacetFilter($storeId)
     {
-        $key = 'price.' . $this->storeManager->getStore($storeId)->getCurrentCurrencyCode() . '.default';
-        return "$key$operation$price";
-
+        return 'price.' . $this->storeManager->getStore($storeId)->getCurrentCurrencyCode() . '.default';
     }
 }
