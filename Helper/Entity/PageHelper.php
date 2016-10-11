@@ -28,7 +28,9 @@ class PageHelper extends BaseHelper
         $excluded_pages = array_values($this->config->getExcludedPages());
 
         foreach ($excluded_pages as &$excluded_page) {
-            $excluded_page = $excluded_page['pages'];
+            if (is_array($excluded_page) && array_key_exists('attribute', $excluded_page)) {
+                $excluded_page = $excluded_page['attribute'];
+            }
         }
 
         $pages = [];
