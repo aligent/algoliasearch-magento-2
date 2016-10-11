@@ -142,7 +142,9 @@ class Algolia implements AdapterInterface
             if (!$this->config->isInstantEnabled($storeId) || $this->config->makeSeoRequest($storeId)) {
                 $algoliaQuery = $query !== '__empty__' ? $query : '';
                 $algoliaParams = $this->facetHelper->getAlgoliaParams($request->getQuery(), $storeId);
-                $algoliaParams['filters'] = implode(" AND ", $algoliaParams['filters']);
+                if (isset($algoliaParams['filters'])) {
+                    $algoliaParams['filters'] = implode(" AND ", $algoliaParams['filters']);
+                }
                 $documents = $this->algoliaHelper->getSearchResult($algoliaQuery, $storeId, $algoliaParams);
             }
 
