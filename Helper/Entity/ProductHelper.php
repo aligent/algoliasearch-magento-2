@@ -496,16 +496,16 @@ class ProductHelper extends BaseHelper
         }
     }
 
-    public function getAllCategories($category_ids)
+    public function getAllCategories($category_ids, $store_id)
     {
-        static $categories = null;
-
-        if ($categories === null) {
+        if (!isset($this->categories[$store_id])) {
+            /** @var \Magento\Catalog\Model\ResourceModel\Category\Collection $categoriesData */
             $categoriesData = $this->objectManager->create('Magento\Catalog\Model\ResourceModel\Category\Collection');
             $categoriesData
                 ->addAttributeToSelect('name')
                 ->addAttributeToFilter('include_in_menu', '1')
                 ->addFieldToFilter('level', ['gt' => 1])
+                ->setStoreId($store_id)
                 ->addIsActiveFilter();
 
             $categories = [];
@@ -513,12 +513,14 @@ class ProductHelper extends BaseHelper
             foreach ($categoriesData as $category) {
                 $categories[$category->getId()] = $category;
             }
+
+            $this->categories[$store_id] = $categories;
         }
 
         $selected_categories = [];
 
         foreach ($category_ids as $id) {
-            if (isset($categories[$id])) {
+            if (isset($this->categories[$id])) {
                 $selected_categories[] = $categories[$id];
             }
         }
@@ -563,7 +565,7 @@ class ProductHelper extends BaseHelper
         $_categoryIds = $product->getCategoryIds();
 
         if (is_array($_categoryIds) && count($_categoryIds) > 0) {
-            $categoryCollection = $this->getAllCategories($_categoryIds);
+            $categoryCollection = $this->getAllCategories($_categoryIds, $product->getStoreId());
             $rootCat = $this->storeManager->getStore($product->getStoreId())->getRootCategoryId();
 
             foreach ($categoryCollection as $category) {
