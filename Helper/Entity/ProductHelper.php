@@ -518,10 +518,11 @@ class ProductHelper extends BaseHelper
         }
 
         $selected_categories = [];
+        $storeCategories = $this->categories[$store_id];
 
         foreach ($category_ids as $id) {
-            if (isset($this->categories[$id])) {
-                $selected_categories[] = $categories[$id];
+            if (isset($storeCategories[$id])) {
+                $selected_categories[] = $storeCategories[$id];
             }
         }
 
