@@ -503,7 +503,6 @@ class ProductHelper extends BaseHelper
             $categoriesData = $this->objectManager->create('Magento\Catalog\Model\ResourceModel\Category\Collection');
             $categoriesData
                 ->addAttributeToSelect('name')
-                ->addAttributeToFilter('include_in_menu', '1')
                 ->addFieldToFilter('level', ['gt' => 1])
                 ->setStoreId($store_id)
                 ->addIsActiveFilter();
