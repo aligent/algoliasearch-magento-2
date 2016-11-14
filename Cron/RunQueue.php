@@ -3,18 +3,29 @@ namespace Algolia\AlgoliaSearch\Cron;
 
 use Algolia\AlgoliaSearch\Helper\ConfigHelper;
 use Algolia\AlgoliaSearch\Model\Queue;
-use Algolia\AlgoliaSearch\Helper\Logger;
+use Psr\Log\LoggerInterface;
 
 class RunQueue
 {
+    /**
+     * @var ConfigHelper
+     */
     protected $configHelper;
+
+    /**
+     * @var Queue
+     */
     protected $queue;
+
+    /**
+     * @var LoggerInterface
+     */
     protected $logger;
 
     public function __construct(
         ConfigHelper $configHelper,
         Queue $queue,
-        Logger $logger
+        LoggerInterface $logger
     ) {
         $this->configHelper = $configHelper;
         $this->queue = $queue;
@@ -23,16 +34,19 @@ class RunQueue
 
     public function execute()
     {
-        if (!$this->configHelper->isQueueActive()) {
-            return;
-        }
+        try {
+            if (!$this->configHelper->isQueueActive()) {
+                //do nothing if queue is not enabled
+                return;
+            }
 
-        if (!$this->configHelper->getApplicationID() || !$this->configHelper->getAPIKey() || !$this->configHelper->getSearchOnlyAPIKey()) {
-            $errorMessage = 'Algolia reindexing failed: You need to configure your Algolia credentials in Stores > Configuration > Algolia Search.';
-            $this->logger->log($errorMessage);
-            return;
-        }
+            if (true || !$this->configHelper->getApplicationID() || !$this->configHelper->getAPIKey() || !$this->configHelper->getSearchOnlyAPIKey()) {
+                throw new \Exception('Algolia reindexing failed: You need to configure your Algolia credentials in Stores > Configuration > Algolia Search.');
+            }
 
-        $this->queue->runCron();
+            $this->queue->runCron();
+        } catch (\Exception $e) {
+            $this->logger->error($e);
+        }
     }
 }
