@@ -54,7 +54,7 @@ class ProductObserver
     ) {
         $result = $closure($productIds, $attrData, $storeId);
         if (!$this->indexer->isScheduled()) {
-            $this->indexer->reindexList(array_unique($productIds));
+            $this->indexer->reindexList(array_filter(array_unique($productIds)));
         }
 
         return $result;
@@ -69,7 +69,7 @@ class ProductObserver
     ) {
         $result = $closure($productIds, $websiteIds, $type);
         if (!$this->indexer->isScheduled()) {
-            $this->indexer->reindexList(array_unique($productIds));
+            $this->indexer->reindexList(array_filter(array_unique($productIds)));
         }
 
         return $result;
