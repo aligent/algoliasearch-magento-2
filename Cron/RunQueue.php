@@ -40,7 +40,7 @@ class RunQueue
                 return;
             }
 
-            if (true || !$this->configHelper->getApplicationID() || !$this->configHelper->getAPIKey() || !$this->configHelper->getSearchOnlyAPIKey()) {
+            if (!$this->configHelper->getApplicationID() || !$this->configHelper->getAPIKey() || !$this->configHelper->getSearchOnlyAPIKey()) {
                 throw new \Exception('Algolia reindexing failed: You need to configure your Algolia credentials in Stores > Configuration > Algolia Search.');
             }
 
