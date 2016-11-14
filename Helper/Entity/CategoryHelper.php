@@ -88,9 +88,12 @@ class CategoryHelper extends BaseHelper
             ->addUrlRewriteToResult()
             ->addIsActiveFilter()
             ->setStoreId($storeId)
-            ->addAttributeToFilter('include_in_menu', '1')
             ->addAttributeToSelect(array_merge(['name'], $additionalAttr))
             ->addFieldToFilter('level', ['gt' => 1]);
+
+        if ($this->config->showCatsNotIncludedInNavigation($storeId)) {
+            $categories->addAttributeToFilter('include_in_menu', '1');
+        }
 
         if ($categoryIds) {
             $categories->addFieldToFilter('entity_id', ['in' => $categoryIds]);
