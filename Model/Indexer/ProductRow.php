@@ -54,6 +54,18 @@ class ProductRow extends Product
         parent::execute($productIds);
     }
 
+    public function executeList(array $ids)
+    {
+        $productIds = $this->getProductIdsFromRowIds($ids);
+        parent::execute($productIds);
+    }
+
+    public function executeRow($id)
+    {
+        $productIds = $this->getProductIdsFromRowIds([$id]);
+        $this->execute($productIds);
+    }
+
     protected function getProductIdsFromRowIds($rowIds)
     {
         /** AdapterInterface $connection */
