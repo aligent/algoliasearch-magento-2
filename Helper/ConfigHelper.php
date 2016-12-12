@@ -5,6 +5,7 @@ namespace Algolia\AlgoliaSearch\Helper;
 use Magento;
 use Magento\Directory\Model\Currency as DirCurrency;
 use Magento\Framework\App\Filesystem\DirectoryList;
+use Magento\Framework\DataObject;
 use Magento\Framework\Locale\Currency;
 use Magento\Store\Model\ScopeInterface;
 use Magento\Store\Model\StoreManagerInterface;
@@ -53,9 +54,9 @@ class ConfigHelper
     const IS_ACTIVE = 'algoliasearch_queue/queue/active';
     const NUMBER_OF_JOB_TO_RUN = 'algoliasearch_queue/queue/number_of_job_to_run';
 
-    const XML_PATH_IMAGE_WIDTH = 'algoliasearch_image/image/width';
-    const XML_PATH_IMAGE_HEIGHT = 'algoliasearch_image/image/height';
-    const XML_PATH_IMAGE_TYPE = 'algoliasearch_image/image/type';
+    const XML_PATH_IMAGE_WIDTH = 'algoliasearch_images/image/width';
+    const XML_PATH_IMAGE_HEIGHT = 'algoliasearch_images/image/height';
+    const XML_PATH_IMAGE_TYPE = 'algoliasearch_images/image/type';
 
     const SYNONYMS = 'algoliasearch_synonyms/synonyms_group/synonyms';
     const ONEWAY_SYNONYMS = 'algoliasearch_synonyms/synonyms_group/oneway_synonyms';
@@ -82,6 +83,7 @@ class ConfigHelper
     private $directoryList;
     private $moduleResource;
     private $productMetadata;
+    private $eventManager;
 
     public function __construct(Magento\Framework\App\Config\ScopeConfigInterface $configInterface,
                                 Magento\Framework\ObjectManagerInterface $objectManager,
@@ -90,7 +92,8 @@ class ConfigHelper
                                 DirCurrency $dirCurrency,
                                 DirectoryList $directoryList,
                                 Magento\Framework\Module\ResourceInterface $moduleResource,
-                                Magento\Framework\App\ProductMetadata $productMetadata)
+                                Magento\Framework\App\ProductMetadataInterface $productMetadata,
+                                Magento\Framework\Event\ManagerInterface $eventManager)
     {
         $this->objectManager = $objectManager;
         $this->configInterface = $configInterface;
@@ -100,6 +103,7 @@ class ConfigHelper
         $this->directoryList = $directoryList;
         $this->moduleResource = $moduleResource;
         $this->productMetadata = $productMetadata;
+        $this->eventManager = $eventManager;
     }
 
     public function indexOutOfStockOptions($storeId = null)
@@ -115,6 +119,11 @@ class ConfigHelper
     public function getMagentoVersion()
     {
         return $this->productMetadata->getVersion();
+    }
+
+    public function getMagentoEdition()
+    {
+        return $this->productMetadata->getEdition();
     }
 
     public function getExtensionVersion()
@@ -159,7 +168,7 @@ class ConfigHelper
 
     public function isEnabledFrontEnd($storeId = null)
     {
-        // Frontend = Backend + Frontent
+        // Frontend = Backend + Frontend
         return (bool) $this->configInterface->getValue(self::ENABLE_BACKEND, ScopeInterface::SCOPE_STORE, $storeId) && (bool) $this->configInterface->getValue(self::ENABLE_FRONTEND, ScopeInterface::SCOPE_STORE, $storeId);
     }
 
@@ -502,6 +511,7 @@ class ConfigHelper
             'image_url',
             'in_stock',
             'type_id',
+            'value',
         ]);
 
         $currencies = $this->dirCurrency->getConfigAllowCurrencies();
@@ -514,6 +524,10 @@ class ConfigHelper
             $attributes[] = 'price.' . $currency . '.special_from_date';
             $attributes[] = 'price.' . $currency . '.special_to_date';
         }
+
+        $transport = new DataObject($attributes);
+        $this->eventManager->dispatch('algolia_get_retrievable_attributes', ['attributes' => $transport]);
+        $attributes = $transport->getData();
 
         return ['attributesToRetrieve' => $attributes];
     }

@@ -21,7 +21,6 @@ use Magento\Framework\ObjectManagerInterface;
 use Magento\Framework\Url;
 use Magento\Store\Model\StoreManagerInterface;
 use Magento\Tax\Helper\Data;
-use Magento\Framework\Module\Manager as ModuleManager;
 
 abstract class BaseHelper
 {
@@ -46,9 +45,10 @@ abstract class BaseHelper
     protected $queryResource;
     protected $filterProvider;
     protected $currencyFactory;
-    protected $moduleManager;
 
     protected $storeUrls;
+
+    private $idColumn;
 
     abstract protected function getIndexNameSuffix();
 
@@ -69,8 +69,7 @@ abstract class BaseHelper
                                 ResourceConnection $queryResource,
                                 Currency $currencyManager,
                                 FilterProvider $filterProvider,
-                                CurrencyFactory $currencyFactory,
-                                ModuleManager $moduleManager)
+                                CurrencyFactory $currencyFactory)
     {
         $this->eavConfig = $eavConfig;
         $this->config = $configHelper;
@@ -91,7 +90,6 @@ abstract class BaseHelper
         $this->queryResource = $queryResource;
         $this->filterProvider = $filterProvider;
         $this->currencyFactory = $currencyFactory;
-        $this->moduleManager = $moduleManager;
     }
 
     public function getBaseIndexName($storeId = null)
@@ -102,15 +100,6 @@ abstract class BaseHelper
     public function getIndexName($storeId = null, $tmp = false)
     {
         return (string) $this->getBaseIndexName($storeId) . $this->getIndexNameSuffix() . ($tmp ? '_tmp' : '');
-    }
-
-    protected function getJoinAttribute()
-    {
-        if ($this->moduleManager->isEnabled('Magento_CatalogStaging')) {
-            return 'row_id';
-        } else {
-            return 'entity_id';
-        }
     }
 
     protected function try_cast($value)
@@ -220,16 +209,14 @@ abstract class BaseHelper
             /** @var \Magento\Catalog\Model\ResourceModel\Category $resource */
             $resource = $this->objectManager->create('\Magento\Catalog\Model\ResourceModel\Category');
 
-            $joinAttribute = $this->getJoinAttribute();
-
             if ($attribute = $resource->getAttribute('is_active')) {
                 $connection = $this->queryResource->getConnection();
                 $select = $connection->select()
-                    ->from(['backend' => $attribute->getBackendTable()], ['key' => new \Zend_Db_Expr("CONCAT(backend.store_id, '-', backend.$joinAttribute)"), 'category.path', 'backend.value'])
-                    ->join(['category' => $resource->getTable('catalog_category_entity')], "backend.$joinAttribute = category.$joinAttribute", [])
+                    ->from(['backend' => $attribute->getBackendTable()], ['key' => new \Zend_Db_Expr("CONCAT(backend.store_id, '-', backend.".$this->getCorrectIdColumn().")"), 'category.path', 'backend.value'])
+                    ->join(['category' => $resource->getTable('catalog_category_entity')], 'backend.'.$this->getCorrectIdColumn().' = category.entity_id', [])
                     ->where('backend.attribute_id = ?', $attribute->getAttributeId())
                     ->order('backend.store_id')
-                    ->order("backend.$joinAttribute");
+                    ->order('backend.'.$this->getCorrectIdColumn());
 
                 self::$_activeCategories = $connection->fetchAssoc($select);
             }
@@ -257,14 +244,12 @@ abstract class BaseHelper
             /** @var \Magento\Catalog\Model\ResourceModel\Category $categoryModel */
             $categoryModel = $this->objectManager->create('\Magento\Catalog\Model\ResourceModel\Category');
 
-            $joinAttribute = $this->getJoinAttribute();
-
             if ($attribute = $categoryModel->getAttribute('name')) {
                 $connection = $this->queryResource->getConnection();
 
                 $select = $connection->select()
-                    ->from(['backend' => $attribute->getBackendTable()], [new \Zend_Db_Expr("CONCAT(backend.store_id, '-', backend.$joinAttribute)"), 'backend.value'])
-                    ->join(['category' => $categoryModel->getTable('catalog_category_entity')], "backend.$joinAttribute = category.$joinAttribute", [])
+                    ->from(['backend' => $attribute->getBackendTable()], [new \Zend_Db_Expr("CONCAT(backend.store_id, '-', backend.".$this->getCorrectIdColumn().")"), 'backend.value'])
+                    ->join(['category' => $categoryModel->getTable('catalog_category_entity')], 'backend.'.$this->getCorrectIdColumn().' = category.entity_id', [])
                     ->where('backend.attribute_id = ?', $attribute->getAttributeId())
                     ->where('category.level > ?', 1);
 
@@ -338,7 +323,22 @@ abstract class BaseHelper
             return $this->storeUrls[$store_id];
         }
 
-        return;
+        return null;
+    }
+
+    protected function getCorrectIdColumn()
+    {
+        if(isset($this->idColumn)) {
+            return $this->idColumn;
+        }
+
+        $this->idColumn = 'entity_id';
+
+        if ($this->config->getMagentoEdition() !== 'Community' && version_compare($this->config->getMagentoVersion(), '2.1.0', '>=')) {
+            $this->idColumn = 'row_id';
+        }
+
+        return $this->idColumn;
     }
 
     /**

@@ -13,7 +13,7 @@ class CustomPages extends AbstractTable
 
         return [
             'attribute' => [
-                'label'  => 'Attribute',
+                'label'  => 'Page',
                 'values' => function () use ($pageCollection) {
                     $options = [];
                     $magento_pages = $pageCollection->addFieldToFilter('is_active', 1);

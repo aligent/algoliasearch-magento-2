@@ -46,9 +46,7 @@ class Category implements Magento\Framework\Indexer\ActionInterface, Magento\Fra
             $errorMessage = 'Algolia reindexing failed: You need to configure your Algolia credentials in Stores > Configuration > Algolia Search.';
 
             if (php_sapi_name() === 'cli') {
-                echo $errorMessage . "\n";
-
-                return;
+                throw new \Exception($errorMessage);
             }
 
             $this->messageManager->addErrorMessage($errorMessage);
@@ -62,7 +60,7 @@ class Category implements Magento\Framework\Indexer\ActionInterface, Magento\Fra
         foreach ($storeIds as $storeId) {
             if ($categoryIds !== null) {
                 $indexName = $this->categoryHelper->getIndexName($storeId);
-                $this->queue->addToQueue($this->fullAction, 'deleteObjects', ['category_ids' => $categoryIds, 'index_name' => $indexName, 'store_id' => $storeId], count($categoryIds));
+                $this->queue->addToQueue($this->fullAction, 'deleteObjects', ['store_id' => $storeId, 'category_ids' => $categoryIds, 'index_name' => $indexName], count($categoryIds));
             } else {
                 $this->queue->addToQueue($this->fullAction, 'saveConfigurationToAlgolia', ['store_id' => $storeId], 1);
             }

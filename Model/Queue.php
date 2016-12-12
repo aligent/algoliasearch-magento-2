@@ -90,7 +90,7 @@ class Queue
             foreach ($data as $job) {
                 $job_size = (int) $job['data_size'];
 
-                if ($element_count + $job_size <= $max_size) {
+                if ($element_count + $job_size <= $max_size || empty($jobs)) {
                     $jobs[] = $job;
                     $element_count += $job_size;
                 } else {

@@ -93,7 +93,7 @@ class Data
         $this->algoliaHelper->deleteIndex($this->categoryHelper->getIndexName($storeId));
     }
 
-    public function deleteObjects($ids, $indexName)
+    public function deleteObjects($storeId, $ids, $indexName)
     {
         $this->algoliaHelper->deleteObjects($ids, $indexName);
     }
@@ -184,9 +184,9 @@ class Data
             return;
         }
 
-        $additionnal_sections = $this->configHelper->getAutocompleteSections();
+        $additional_sections = $this->configHelper->getAutocompleteSections();
 
-        foreach ($additionnal_sections as $section) {
+        foreach ($additional_sections as $section) {
             if ($section['name'] === 'products' || $section['name'] === 'categories' || $section['name'] === 'pages' || $section['name'] === 'suggestions') {
                 continue;
             }
