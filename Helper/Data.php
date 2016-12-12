@@ -340,7 +340,7 @@ class Data
                 $page = 1;
 
                 while ($page <= $pages) {
-                    $this->rebuildStoreProductIndexPage($storeId, $collection, $page, $this->configHelper->getNumberOfElementByPage(), null, $productIds);
+                    $this->rebuildStoreProductIndexPage($storeId, $collection, $page, $this->configHelper->getNumberOfElementByPage(), true, $productIds);
 
                     $page++;
                 }
