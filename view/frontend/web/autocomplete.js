@@ -16,7 +16,7 @@ requirejs(['algoliaBundle'], function(algoliaBundle) {
 			products: algoliaBundle.Hogan.compile($('#autocomplete_products_template').html()),
 			categories: algoliaBundle.Hogan.compile($('#autocomplete_categories_template').html()),
 			pages: algoliaBundle.Hogan.compile($('#autocomplete_pages_template').html()),
-			additionnalSection: algoliaBundle.Hogan.compile($('#autocomplete_extra_template').html())
+			additionalSection: algoliaBundle.Hogan.compile($('#autocomplete_extra_template').html())
 		};
 		
 		/**

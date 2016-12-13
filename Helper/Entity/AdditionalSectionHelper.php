@@ -14,7 +14,7 @@ class AdditionalSectionHelper extends BaseHelper
     public function getIndexSettings($storeId)
     {
         return [
-            'attributesToIndex' => ['value'],
+            'attributesToIndex' => ['unordered(value)'],
         ];
     }
 

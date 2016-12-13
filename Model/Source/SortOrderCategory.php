@@ -23,16 +23,16 @@ class SortOrderCategory extends AbstractTable
                 },
             ],
             'searchable' => [
-                'label'  => 'Searchable',
+                'label'  => 'Searchable?',
                 'values' => ['1' => 'Yes', '2' => 'No'],
             ],
             'retrievable' => [
-                'label'  => 'Retrievable',
+                'label'  => 'Retrievable?',
                 'values' => ['1' => 'Yes', '2' => 'No'],
             ],
             'order' => [
-                'label'  => 'Ordered',
-                'values' => ['ordered' => 'Ordered', 'unordered' => 'Unordered'],
+                'label'  => 'Ordered?',
+                'values' => ['unordered' => 'Unordered', 'ordered' => 'Ordered'],
             ],
         ];
     }

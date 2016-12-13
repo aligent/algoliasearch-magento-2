@@ -15,6 +15,8 @@ use Magento\Framework\App\ObjectManager;
 use Magento\Framework\App\ResourceConnection;
 use Magento\Search\Model\Query;
 use Magento\Store\Model\App\Emulation;
+use Magento\Framework\Indexer\CacheContext;
+use Magento\Framework\Event\ManagerInterface;
 
 class Data
 {
@@ -31,6 +33,9 @@ class Data
     protected $configHelper;
     protected $emulation;
     protected $resource;
+    
+    protected $cacheContext;
+    protected $eventManager;
 
     public function __construct(AlgoliaHelper $algoliaHelper,
                                 ConfigHelper $configHelper,
@@ -41,8 +46,10 @@ class Data
                                 AdditionalSectionHelper $additionalSectionHelper,
                                 Emulation $emulation,
                                 Logger $logger,
-                                ResourceConnection $resource)
-    {
+                                ResourceConnection $resource,
+                                CacheContext $cacheContext,
+                                ManagerInterface $eventManager
+    ) {
         $this->algoliaHelper = $algoliaHelper;
 
         $this->pageHelper = $pageHelper;
@@ -55,6 +62,9 @@ class Data
         $this->logger = $logger;
         $this->emulation = $emulation;
         $this->resource = $resource;
+        
+        $this->cacheContext = $cacheContext;
+        $this->eventManager = $eventManager;
     }
 
     public function deleteProductsStoreIndices($storeId = null)
@@ -83,7 +93,7 @@ class Data
         $this->algoliaHelper->deleteIndex($this->categoryHelper->getIndexName($storeId));
     }
 
-    public function deleteObjects($ids, $indexName)
+    public function deleteObjects($storeId, $ids, $indexName)
     {
         $this->algoliaHelper->deleteObjects($ids, $indexName);
     }
@@ -174,9 +184,9 @@ class Data
             return;
         }
 
-        $additionnal_sections = $this->configHelper->getAutocompleteSections();
+        $additional_sections = $this->configHelper->getAutocompleteSections();
 
-        foreach ($additionnal_sections as $section) {
+        foreach ($additional_sections as $section) {
             if ($section['name'] === 'products' || $section['name'] === 'categories' || $section['name'] === 'pages' || $section['name'] === 'suggestions') {
                 continue;
             }
@@ -330,7 +340,7 @@ class Data
                 $page = 1;
 
                 while ($page <= $pages) {
-                    $this->rebuildStoreProductIndexPage($storeId, $collection, $page, $this->configHelper->getNumberOfElementByPage(), null, $productIds);
+                    $this->rebuildStoreProductIndexPage($storeId, $collection, $page, $this->configHelper->getNumberOfElementByPage(), true, $productIds);
 
                     $page++;
                 }
@@ -408,6 +418,7 @@ class Data
         $index_name = $this->categoryHelper->getIndexName($storeId);
 
         $indexData = [];
+        $categoryIds = [];
 
         /** @var Category $category */
         foreach ($collection as $category) {
@@ -421,11 +432,14 @@ class Data
 
             if ($category_obj['product_count'] > 0) {
                 array_push($indexData, $category_obj);
+                $categoryIds[] = $category->getId();
             }
         }
 
         if (count($indexData) > 0) {
             $this->algoliaHelper->addObjects($indexData, $index_name);
+            $this->cacheContext->registerEntities(Category::CACHE_TAG, $categoryIds);
+            $this->eventManager->dispatch('clean_cache_by_tags', ['object' => $this->cacheContext]);
         }
 
         unset($indexData);
@@ -551,8 +565,11 @@ class Data
             $this->logger->start('ADD/UPDATE TO ALGOLIA');
 
             $this->algoliaHelper->addObjects($indexData['toIndex'], $index_name);
+            
+            $addedProductIds = array_keys($indexData['toIndex']);
+            $this->cacheContext->registerEntities(Product::CACHE_TAG, $addedProductIds);
 
-            $this->logger->log('Product IDs: ' . implode(', ', array_keys($indexData['toIndex'])));
+            $this->logger->log('Product IDs: ' . implode(', ', $addedProductIds));
             $this->logger->stop('ADD/UPDATE TO ALGOLIA');
         }
 
@@ -560,10 +577,13 @@ class Data
             $this->logger->start('REMOVE FROM ALGOLIA');
 
             $this->algoliaHelper->deleteObjects($indexData['toRemove'], $index_name);
+            $this->cacheContext->registerEntities(Product::CACHE_TAG, $indexData['toRemove']);
 
             $this->logger->log('Product IDs: ' . implode(', ', $indexData['toRemove']));
             $this->logger->stop('REMOVE FROM ALGOLIA');
         }
+        
+        $this->eventManager->dispatch('clean_cache_by_tags', ['object' => $this->cacheContext]);
 
         unset($indexData);
 

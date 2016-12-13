@@ -54,6 +54,18 @@ class CategoryRow extends Category
         parent::execute($categoryIds);
     }
 
+    public function executeList(array $ids)
+    {
+        $categoryIds = $this->getCategoryIdsFromRowIds($ids);
+        parent::execute($categoryIds);
+    }
+
+    public function executeRow($id)
+    {
+        $categoryIds = $this->getCategoryIdsFromRowIds([$id]);
+        $this->execute($categoryIds);
+    }
+
     protected function getCategoryIdsFromRowIds($rowIds)
     {
         /** AdapterInterface $connection */

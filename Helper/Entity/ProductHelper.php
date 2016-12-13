@@ -47,7 +47,19 @@ class ProductHelper extends BaseHelper
 
             $allAttributes = $this->eavConfig->getEntityAttributeCodes('catalog_product');
 
-            $productAttributes = array_merge(['name', 'path', 'categories', 'categories_without_path', 'description', 'ordered_qty', 'total_ordered', 'stock_qty', 'rating_summary', 'media_gallery'], $allAttributes);
+            $productAttributes = array_merge([
+                'name',
+                'path',
+                'categories',
+                'categories_without_path',
+                'description',
+                'ordered_qty',
+                'total_ordered',
+                'stock_qty',
+                'rating_summary',
+                'media_gallery',
+                'in_stock',
+            ], $allAttributes);
 
             $excludedAttributes = [
                 'all_children', 'available_sort_by', 'children', 'children_count', 'custom_apply_to_products',
@@ -291,7 +303,7 @@ class ProductHelper extends BaseHelper
                 $synonymsToSet[] = [
                     'objectID' => $objectID,
                     'type' => 'synonym',
-                    'synonyms' => $this->explodeSynomyms($synonym['synonyms']),
+                    'synonyms' => $this->explodeSynonyms($synonym['synonyms']),
                 ];
             }
 
@@ -301,7 +313,7 @@ class ProductHelper extends BaseHelper
                     'objectID' => $objectID,
                     'type' => 'oneWaySynonym',
                     'input' => $onewaySynonym['input'],
-                    'synonyms' => $this->explodeSynomyms($onewaySynonym['synonyms']),
+                    'synonyms' => $this->explodeSynonyms($onewaySynonym['synonyms']),
                 ];
             }
         }
@@ -802,7 +814,7 @@ class ProductHelper extends BaseHelper
         return $customData;
     }
 
-    private function explodeSynomyms($synonyms)
+    private function explodeSynonyms($synonyms)
     {
         return array_map('trim', explode(',', $synonyms));
     }

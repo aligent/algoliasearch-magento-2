@@ -58,7 +58,7 @@ requirejs(['algoliaBundle'], function(algoliaBundle) {
 			}
 		});
 		
-		search.client.addAlgoliaAgent('Magento integration (' + algoliaConfig.extensionVersion + ')');
+		search.client.addAlgoliaAgent('Magento2 integration (' + algoliaConfig.extensionVersion + ')');
 		
 		/**
 		 * Custom widget - this widget is used to refine results for search page or catalog page
@@ -264,7 +264,7 @@ requirejs(['algoliaBundle'], function(algoliaBundle) {
 					hierarchical_levels.push('categories.level' + l.toString());
 				
 				var hierarchicalMenuParams = {
-					container: facet.wrapper.appendChild(document.createElement('div')),
+					container: facet.wrapper.appendChild(createISWidgetContainer(facet.attribute)),
 					attributes: hierarchical_levels,
 					separator: ' /// ',
 					alwaysGetRootLevel: true,
@@ -292,7 +292,7 @@ requirejs(['algoliaBundle'], function(algoliaBundle) {
 			}
 		};
 		
-		/** Add all facet widgets to instatnsearch object **/
+		/** Add all facet widgets to instantsearch object **/
 		
 		window.getFacetWidget = function (facet, templates) {
 			
@@ -300,7 +300,7 @@ requirejs(['algoliaBundle'], function(algoliaBundle) {
 				delete templates.item;
 				
 				return algoliaBundle.instantsearch.widgets.priceRanges({
-					container: facet.wrapper.appendChild(document.createElement('div')),
+					container: facet.wrapper.appendChild(createISWidgetContainer(facet.attribute)),
 					attributeName: facet.attribute,
 					labels: {
 						currency: algoliaConfig.currencySymbol,
@@ -316,7 +316,7 @@ requirejs(['algoliaBundle'], function(algoliaBundle) {
 			
 			if (facet.type === 'conjunctive') {
 				return algoliaBundle.instantsearch.widgets.refinementList({
-					container: facet.wrapper.appendChild(document.createElement('div')),
+					container: facet.wrapper.appendChild(createISWidgetContainer(facet.attribute)),
 					attributeName: facet.attribute,
 					limit: algoliaConfig.maxValuesPerFacet,
 					operator: 'and',
@@ -329,7 +329,7 @@ requirejs(['algoliaBundle'], function(algoliaBundle) {
 			
 			if (facet.type === 'disjunctive') {
 				return algoliaBundle.instantsearch.widgets.refinementList({
-					container: facet.wrapper.appendChild(document.createElement('div')),
+					container: facet.wrapper.appendChild(createISWidgetContainer(facet.attribute)),
 					attributeName: facet.attribute,
 					limit: algoliaConfig.maxValuesPerFacet,
 					operator: 'or',
@@ -344,7 +344,7 @@ requirejs(['algoliaBundle'], function(algoliaBundle) {
 				delete templates.item;
 				
 				return algoliaBundle.instantsearch.widgets.rangeSlider({
-					container: facet.wrapper.appendChild(document.createElement('div')),
+					container: facet.wrapper.appendChild(createISWidgetContainer(facet.attribute)),
 					attributeName: facet.attribute,
 					templates: templates,
 					cssClasses: {

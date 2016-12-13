@@ -36,9 +36,7 @@ class AdditionalSection implements Magento\Framework\Indexer\ActionInterface, Ma
             $errorMessage = 'Algolia reindexing failed: You need to configure your Algolia credentials in Stores > Configuration > Algolia Search.';
 
             if (php_sapi_name() === 'cli') {
-                echo $errorMessage . "\n";
-
-                return;
+                throw new \Exception($errorMessage);
             }
 
             $this->messageManager->addErrorMessage($errorMessage);

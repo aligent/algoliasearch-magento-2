@@ -44,9 +44,7 @@ class Product implements Magento\Framework\Indexer\ActionInterface, Magento\Fram
             $errorMessage = 'Algolia reindexing failed: You need to configure your Algolia credentials in Stores > Configuration > Algolia Search.';
 
             if (php_sapi_name() === 'cli') {
-                echo $errorMessage . "\n";
-
-                return;
+                throw new \Exception($errorMessage);
             }
 
             $this->messageManager->addErrorMessage($errorMessage);
@@ -65,12 +63,8 @@ class Product implements Magento\Framework\Indexer\ActionInterface, Magento\Fram
 
                 $useTmpIndex = $this->configHelper->isQueueActive($storeId);
 
-                $collection = $this->productHelper->getProductCollectionQuery($storeId, $productIds, $useTmpIndex);
+                $collection = $this->productHelper->getProductCollectionQuery($storeId, null, $useTmpIndex);
                 $size = $collection->getSize();
-
-                if (!empty($productIds)) {
-                    $size = max(count($productIds), $size);
-                }
 
                 $productsPerPage = $this->configHelper->getNumberOfElementByPage();
                 $pages = ceil($size / $productsPerPage);
@@ -83,7 +77,7 @@ class Product implements Magento\Framework\Indexer\ActionInterface, Magento\Fram
                 for ($i = 1; $i <= $pages; $i++) {
                     $data = [
                         'store_id' => $storeId,
-                        'product_ids' => $productIds,
+                        'product_ids' => null,
                         'page' => $i,
                         'page_size' => $productsPerPage,
                         'useTmpIndex' => $useTmpIndex,
