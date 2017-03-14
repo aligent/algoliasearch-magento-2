@@ -323,4 +323,16 @@ abstract class BaseHelper
 
         return;
     }
+
+    /**
+     * @param $url
+     * @return mixed
+     */
+    public function fixPubUrl($url)
+    {
+        if ($this->config->isPubRoot()) {
+            $url = preg_replace('/^((https?:\/\/)?.*?)(\/pub?\/)(.*)$/', '$1/$4', $url);
+        }
+        return $url;
+    }
 }
