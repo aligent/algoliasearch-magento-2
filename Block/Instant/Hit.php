@@ -4,26 +4,23 @@ namespace Algolia\AlgoliaSearch\Block\Instant;
 
 use Algolia\AlgoliaSearch\Helper\ConfigHelper;
 use Magento\Customer\Model\Session;
-use Magento\Framework\Data\Form\FormKey;
 use Magento\Framework\View\Element\Template;
 
 class Hit extends Template
 {
     protected $config;
     protected $customerSession;
-    protected $formKey;
     protected $priceKey;
 
     public function __construct(
         Template\Context $context,
         ConfigHelper $config,
         Session $customerSession,
-        FormKey $formKey,
         array $data = []
     ) {
         $this->config = $config;
         $this->customerSession = $customerSession;
-        $this->formKey = $formKey;
+
         parent::__construct($context, $data);
     }
 
@@ -36,10 +33,5 @@ class Hit extends Template
         }
 
         return $this->priceKey;
-    }
-
-    public function getFormKey()
-    {
-        return $this->formKey->getFormKey();
     }
 }

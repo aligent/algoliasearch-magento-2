@@ -1,5 +1,69 @@
 # CHANGELOG
 
+## 1.0.8
+
+- Fixed the requireJS issue introduced in 1.0.6, which ended up in administration's JavaScript not working (#168, #169)
+
+## 1.0.6
+
+- Fixed indexing of out-of-stock products (#142)
+- Fixed CSS for showing products's ratings on instant search page (#143)
+- The category refinement is now displayed in Current filters section and it's easy to remove on replaced category page (#144)
+- Fixed indexing of prices with applied price rules (#145, #160)
+- Formatted default original price attribute is now retrieved from Algolia by default (#151)
+- Fixed showing of "Add to cart" button (#152)
+- Exception is not thrown anymore from Algolia indexers when Algolia credentials are not filled in (#155)
+    - Fixes the installation abortion when the extension was installed before Magento's installation
+- Fixed the layout handle to load templates correctly to Ultimo theme (#156)
+- Fixed admin JavaScript to load correctly and not conflict with other pages (#159, #162)
+- `script` and `style` tags are now completely (with it's content) removed from CMS pages' indexed content (#163)
+- New version of instantsearch.js and autocomplete.js libraries (#165)
+
+## 1.0.5
+
+- Official support of Magento >= 2.1 (#117)
+- Fixed method signature for delete objects in Algolia (#120)
+- Show all configuration options in website and store views (#133)
+- Option "Make SEO Request" is enabled by default now (#134)
+- CMS pages are now indexed correctly for specific stores (#135)
+- Product's custom data now contains it's `type` in `algolia_subproducs_index` event (#136)
+- Replica indices are now not created when Instant Search feature is not enabled (#137)
+- New Algolia logo is used in autocomplete menu (#138)
+- The extension now sends `replicas` index setting instead of `slaves` (#139)
+- Products are now indexed correctly into all assigned stores (#140)
+
+## 1.0.4
+
+- Fixed User-Agent from Magento 1 to Magento 2 (#92)
+- Fixed additional sections' links in autocomplete menu (#93)
+- All searchable attributes are set as Unordered by default (#94)
+- Fixed configHelper to use ProductMetadataInterface to get the correct dependecy (#97)
+- Fixed indexing of categories when option "Show categories that are not included in the navigation menu" weren't taken into account (#100)
+- Fixed backend Algolia adapter to correctly respect "Make SEO request" configuration (#101)
+- Fixed images config paths (#104)
+- Added specific HTML classes to refinement widget containers (#105)
+- Fixed the issue when queue runner didn't process any job after specific settings changed. Now it process always at least one job (#106)
+- Fixed the functionality of "Add To Cart" button (#107)
+- Attribute `in_stock` is now exposed in Algolia configuration and can be used for custom ranking or sorting (#109)
+- Add `algolia_get_retrievable_attributes` custom event to `getRetrievableAttributes` method to allow developers set custom retrievable  attributes for generated API keys (#112)
+- Fixed queue issue when `store_id` parameter was not passed to `deleteObjects` categories' operation (#113)
+
+## 1.0.3
+
+- Fixed issue with indexing content on Magento 2.1 EE and higher (#87)
+- Fixed page indexing to index pages only from active stores (#82)
+
+## 1.0.2
+
+- Fixed issue with merging JS files in administration - added new line at the end of [algoliaAdminBundle.min.js](https://github.com/algolia/algoliasearch-magento-2/blob/master/view/adminhtml/web/algoliaAdminBundle.min.js)
+
+## 1.0.1
+
+- Fixed issue with merging JS files - added new line at the end of [algoliaBundle.min.js](https://github.com/algolia/algoliasearch-magento-2/blob/master/view/frontend/web/internals/algoliaBundle.min.js)
+- Fixed page indexing when some excluded pages were set
+- Fixed data types of `enabled` variables in `algoliaConfig`
+- Fixed few typos
+
 ## 1.0.0
 
 - Release
@@ -16,7 +80,7 @@
     - Layout's XML files were rewritten and optimized
     - Extension's assets were removed and replaced by SVGs
 - Fixed CSS of autocomplete menu's footer (#55, #58)
-- Instatnsearch.js library was updated to it's latest version (#56)
+- Instantsearch.js library was updated to it's latest version (#56)
 - The extension officially supports only 2.0.X versions of Magento, however it's still possible and encouraged to use it on 2.1.0 (#53)
 - Fixed some annotations in code (#52, #51)
 

@@ -16,7 +16,7 @@ requirejs(['algoliaBundle'], function(algoliaBundle) {
 			products: algoliaBundle.Hogan.compile($('#autocomplete_products_template').html()),
 			categories: algoliaBundle.Hogan.compile($('#autocomplete_categories_template').html()),
 			pages: algoliaBundle.Hogan.compile($('#autocomplete_pages_template').html()),
-			additionnalSection: algoliaBundle.Hogan.compile($('#autocomplete_extra_template').html())
+			additionalSection: algoliaBundle.Hogan.compile($('#autocomplete_extra_template').html())
 		};
 		
 		/**
@@ -71,7 +71,7 @@ requirejs(['algoliaBundle'], function(algoliaBundle) {
 			};
 			
 			if (algoliaConfig.removeBranding === false) {
-				options.templates.footer = '<div class="footer_algolia"><span>' +algoliaConfig.translations.searchBy + '</span> <a href="https://www.algolia.com/?utm_source=magento&utm_medium=link&utm_campaign=magento_autocompletion_menu" target="_blank"><img src="' +algoliaConfig.urls.logo + '" /></a></div>';
+				options.templates.footer = '<div class="footer_algolia"><a href="https://www.algolia.com/?utm_source=magento&utm_medium=link&utm_campaign=magento_autocompletion_menu" title="Search by Algolia" target="_blank"><img src="' +algoliaConfig.urls.logo + '"  alt="Search by Algolia" /></a></div>';
 			}
 			
 			/** Bind autocomplete feature to the input */

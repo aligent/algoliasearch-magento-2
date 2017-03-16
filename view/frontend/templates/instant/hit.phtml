@@ -1,6 +1,9 @@
 <?php
 
-/** @var \Algolia\AlgoliaSearch\Block\Instant\Hit $block */
+/**
+ * @var \Algolia\AlgoliaSearch\Block\Instant\Hit $block
+ */
+
 $priceKey = $block->getPriceKey();
 
 ?>
@@ -20,11 +23,15 @@ $priceKey = $block->getPriceKey();
                         </h3>
                         <div class="ratings">
                             <div class="result-sub-content">
-                                <div class="ratings">
-                                    <div class="rating-box">
-                                        <div class="rating" style="width:{{rating_summary}}%" width="148" height="148"></div>
+                                <div class="product-reviews-summary short">
+                                    <div class="rating-summary">
+                                        <span class="label"><span>Rating:</span></span>
+                                        <div class="rating-result" title="{{rating_summary}}%">
+                                            <span style="width:{{rating_summary}}%"><span>{{rating_summary}}%</span></span>
+                                        </div>
                                     </div>
                                 </div>
+
                                 <div class="price">
                                     <div class="price-wrapper">
                                         <div>
@@ -46,10 +53,13 @@ $priceKey = $block->getPriceKey();
 
                         {{#isAddToCartEnabled}}
                         {{#in_stock}}
-                        <form action="<?php echo $block->getBaseUrl(); ?>/checkout/cart/add/product/{{objectID}}" method="post">
-                            <input type="hidden" name="form_key" value="<?php echo $block->getFormKey(); ?>" />
-                            <input type="hidden" name="qty" value="1">
-                            <button type="submit"><?php echo __('Add to Cart'); ?></button>
+                        <form data-role="tocart-form" action="{{ addToCart.action }}" method="post">
+                            <input type="hidden" name="product" value="{{objectID}}">
+                            <input type="hidden" name="uenc" value="{{ addToCart.uenc }}">
+                            <input name="form_key" type="hidden" value="{{ addToCart.formKey }}">
+                            <button type="submit" title="Add to Cart" class="action tocart primary">
+                                <span>Add to Cart</span>
+                            </button>
                         </form>
                         {{/in_stock}}
                         {{/isAddToCartEnabled}}

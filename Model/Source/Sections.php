@@ -10,7 +10,7 @@ class Sections extends AbstractTable
 
         return [
             'name' => [
-                'label'  => 'Attribute',
+                'label'  => 'Section',
                 'values' => function () use ($config) {
                     $options = [];
 

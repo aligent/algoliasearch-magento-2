@@ -10,6 +10,7 @@ use Algolia\AlgoliaSearch\Model\Queue;
 use Magento;
 use Magento\Framework\Message\ManagerInterface;
 use Magento\Store\Model\StoreManagerInterface;
+use Symfony\Component\Console\Output\ConsoleOutput;
 
 class Page implements Magento\Framework\Indexer\ActionInterface, Magento\Framework\Mview\ActionInterface
 {
@@ -20,15 +21,18 @@ class Page implements Magento\Framework\Indexer\ActionInterface, Magento\Framewo
     private $queue;
     private $configHelper;
     private $messageManager;
+    private $output;
 
-    public function __construct(StoreManagerInterface $storeManager,
-                                PageHelper $pageHelper,
-                                Data $helper,
-                                AlgoliaHelper $algoliaHelper,
-                                Queue $queue,
-                                ConfigHelper $configHelper,
-                                ManagerInterface $messageManager)
-    {
+    public function __construct(
+        StoreManagerInterface $storeManager,
+        PageHelper $pageHelper,
+        Data $helper,
+        AlgoliaHelper $algoliaHelper,
+        Queue $queue,
+        ConfigHelper $configHelper,
+        ManagerInterface $messageManager,
+        ConsoleOutput $output
+    ) {
         $this->fullAction = $helper;
         $this->storeManager = $storeManager;
         $this->pageHelper = $pageHelper;
@@ -36,6 +40,7 @@ class Page implements Magento\Framework\Indexer\ActionInterface, Magento\Framewo
         $this->queue = $queue;
         $this->configHelper = $configHelper;
         $this->messageManager = $messageManager;
+        $this->output = $output;
     }
 
     public function execute($ids)
@@ -48,7 +53,7 @@ class Page implements Magento\Framework\Indexer\ActionInterface, Magento\Framewo
             $errorMessage = 'Algolia reindexing failed: You need to configure your Algolia credentials in Stores > Configuration > Algolia Search.';
 
             if (php_sapi_name() === 'cli') {
-                echo $errorMessage . "\n";
+                $this->output->writeln($errorMessage);
 
                 return;
             }
@@ -58,7 +63,12 @@ class Page implements Magento\Framework\Indexer\ActionInterface, Magento\Framewo
             return;
         }
 
-        $storeIds = array_keys($this->storeManager->getStores());
+        $storeIds = [];
+        foreach ($this->storeManager->getStores() as $store) {
+            if ($store->isActive()) {
+                $storeIds[] = $store->getId();
+            }
+        }
 
         foreach ($storeIds as $storeId) {
             $this->queue->addToQueue($this->fullAction, 'rebuildStorePageIndex', ['store_id' => $storeId], 1);

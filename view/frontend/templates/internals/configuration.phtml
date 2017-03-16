@@ -1,5 +1,8 @@
 <?php
-/** @var \Algolia\AlgoliaSearch\Block\Algolia $block */
+/**
+ * @var \Magento\Framework\View\TemplateEngine\Php $this
+ * @var \Algolia\AlgoliaSearch\Block\Algolia $block
+ */
 
 $config = $block->getConfigHelper();
 
@@ -27,6 +30,8 @@ $query = '';
 $refinementKey = '';
 $refinementValue = '';
 $path = '';
+
+$addToCartParams = $block->getAddToCartParams();
 
 /**
  * Handle category replacement
@@ -59,7 +64,7 @@ if ($config->isInstantEnabled()) {
     $pageIdentifier = $block->getRequest()->getFullActionName();
 
     if ($pageIdentifier === 'catalogsearch_result_index') {
-        $query = $catalogSearchHelper->getEscapedQueryText();
+        $query = $block->getRequest()->getParam($catalogSearchHelper->getQueryParamName());
 
         if ($query == '__empty__') {
             $query = '';
@@ -91,12 +96,13 @@ if ($config->isInstantEnabled() && $isSearchPage) {
 
 $algoliaJsConfig = [
     'instant' => [
-        'enabled' => $config->isInstantEnabled(),
+        'enabled' => (bool) $config->isInstantEnabled(),
         'selector' => $config->getInstantSelector(),
         'isAddToCartEnabled' => $config->isAddToCartEnable(),
+        'addToCartParams' => $addToCartParams,
     ],
     'autocomplete' => [
-        'enabled' => $config->isAutoCompleteEnabled(),
+        'enabled' => (bool) $config->isAutoCompleteEnabled(),
         'selector' => $config->getAutocompleteSelector(),
         'sections' => $config->getAutocompleteSections(),
         'nbOfProductsSuggestions' => $config->getNumberOfProductsSuggestions(),
@@ -129,7 +135,7 @@ $algoliaJsConfig = [
     'baseUrl' => $baseUrl,
     'popularQueries' => $config->getPopularQueries(),
     'urls' => [
-        'logo' => $block->getViewFileUrl('Algolia_AlgoliaSearch::images/algolia-logo.png'),
+        'logo' => $block->getViewFileUrl('Algolia_AlgoliaSearch::images/search-by-algolia.svg'),
     ],
     'translations' => [
         'to' => __('to'),

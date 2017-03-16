@@ -14,7 +14,7 @@ class PageHelper extends BaseHelper
     public function getIndexSettings($storeId)
     {
         return [
-            'attributesToIndex'   => ['slug', 'name', 'unordered(content)'],
+            'attributesToIndex'   => ['unordered(slug)', 'unordered(name)', 'unordered(content)'],
             'attributesToSnippet' => ['content:7'],
         ];
     }
@@ -23,12 +23,15 @@ class PageHelper extends BaseHelper
     {
         /** @var \Magento\Cms\Model\Page $pageModel */
         $pageModel = $this->objectManager->create('\Magento\Cms\Model\Page');
-        $magento_pages = $pageModel->getCollection()->addFieldToFilter('is_active', 1);
+
+        $magento_pages = $pageModel->getCollection()
+            ->addStoreFilter($storeId)
+            ->addFieldToFilter('is_active', 1);
 
         $excluded_pages = array_values($this->config->getExcludedPages());
 
         foreach ($excluded_pages as &$excluded_page) {
-            $excluded_page = $excluded_page['pages'];
+            $excluded_page = $excluded_page['attribute'];
         }
 
         $pages = [];
@@ -57,7 +60,7 @@ class PageHelper extends BaseHelper
 
             $page_obj['objectID'] = $page->getId();
             $page_obj['url'] = $this->getStoreUrl($storeId)->getUrl(null, ['_direct' => $page->getIdentifier()]);
-            $page_obj['content'] = $this->strip($content);
+            $page_obj['content'] = $this->strip($content, array('script', 'style'));
 
             $pages[] = $page_obj;
         }

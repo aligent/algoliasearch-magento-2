@@ -47,7 +47,19 @@ class ProductHelper extends BaseHelper
 
             $allAttributes = $this->eavConfig->getEntityAttributeCodes('catalog_product');
 
-            $productAttributes = array_merge(['name', 'path', 'categories', 'categories_without_path', 'description', 'ordered_qty', 'total_ordered', 'stock_qty', 'rating_summary', 'media_gallery'], $allAttributes);
+            $productAttributes = array_merge([
+                'name',
+                'path',
+                'categories',
+                'categories_without_path',
+                'description',
+                'ordered_qty',
+                'total_ordered',
+                'stock_qty',
+                'rating_summary',
+                'media_gallery',
+                'in_stock',
+            ], $allAttributes);
 
             $excludedAttributes = [
                 'all_children', 'available_sort_by', 'children', 'children_count', 'custom_apply_to_products',
@@ -100,7 +112,7 @@ class ProductHelper extends BaseHelper
             $products = $products->addAttributeToFilter('visibility', ['in' => $this->visibility->getVisibleInSearchIds()]);
         }
 
-        if (false === $this->config->getShowOutOfStock($storeId)) {
+        if ($this->config->getShowOutOfStock($storeId) === false) {
             $this->stock->addInStockFilterToCollection($products);
         }
 
@@ -219,14 +231,15 @@ class ProductHelper extends BaseHelper
         }
 
         /*
-         * Handle Slaves
+         * Handle replicas
          */
-        $sorting_indices = $this->config->getSortingIndices($storeId);
+        $isInstantSearchEnabled = (bool) $this->config->isInstantEnabled($storeId);
+        $sortingIndices = $this->config->getSortingIndices($storeId);
 
-        if (count($sorting_indices) > 0) {
-            $slaves = [];
+        if ($isInstantSearchEnabled === true && count($sortingIndices) > 0) {
+            $replicas = [];
 
-            foreach ($sorting_indices as $values) {
+            foreach ($sortingIndices as $values) {
                 if ($this->config->isCustomerGroupsEnabled($storeId)) {
                     if ($values['attribute'] === 'price') {
                         $groupCollection = $this->objectManager->create('Magento\Customer\Model\ResourceModel\Group\Collection');
@@ -236,21 +249,21 @@ class ProductHelper extends BaseHelper
 
                             $suffix_index_name = 'group_' . $group_id;
 
-                            $slaves[] = $this->getIndexName($storeId) . '_' . $values['attribute'] . '_' . $suffix_index_name . '_' . $values['sort'];
+                            $replicas[] = $this->getIndexName($storeId) . '_' . $values['attribute'] . '_' . $suffix_index_name . '_' . $values['sort'];
                         }
                     }
                 } else {
                     if ($values['attribute'] === 'price') {
-                        $slaves[] = $this->getIndexName($storeId) . '_' . $values['attribute'] . '_default_' . $values['sort'];
+                        $replicas[] = $this->getIndexName($storeId) . '_' . $values['attribute'] . '_default_' . $values['sort'];
                     } else {
-                        $slaves[] = $this->getIndexName($storeId) . '_' . $values['attribute'] . '_' . $values['sort'];
+                        $replicas[] = $this->getIndexName($storeId) . '_' . $values['attribute'] . '_' . $values['sort'];
                     }
                 }
             }
 
-            $this->algoliaHelper->setSettings($this->getIndexName($storeId), ['slaves' => $slaves]);
+            $this->algoliaHelper->setSettings($this->getIndexName($storeId), ['replicas' => $replicas]);
 
-            foreach ($sorting_indices as $values) {
+            foreach ($sortingIndices as $values) {
                 if ($this->config->isCustomerGroupsEnabled($storeId)) {
                     if (strpos($values['attribute'], 'price') !== false) {
                         $groupCollection = $this->objectManager->create('Magento\Customer\Model\ResourceModel\Group\Collection');
@@ -291,7 +304,7 @@ class ProductHelper extends BaseHelper
                 $synonymsToSet[] = [
                     'objectID' => $objectID,
                     'type' => 'synonym',
-                    'synonyms' => $this->explodeSynomyms($synonym['synonyms']),
+                    'synonyms' => $this->explodeSynonyms($synonym['synonyms']),
                 ];
             }
 
@@ -301,7 +314,7 @@ class ProductHelper extends BaseHelper
                     'objectID' => $objectID,
                     'type' => 'oneWaySynonym',
                     'input' => $onewaySynonym['input'],
-                    'synonyms' => $this->explodeSynomyms($onewaySynonym['synonyms']),
+                    'synonyms' => $this->explodeSynonyms($onewaySynonym['synonyms']),
                 ];
             }
         }
@@ -350,6 +363,8 @@ class ProductHelper extends BaseHelper
         $currencies = $this->currencyHelper->getConfigAllowCurrencies();
         $baseCurrencyCode = $store->getBaseCurrencyCode();
 
+        $priceInfo = $product->getPriceInfo();
+
         $groups = [];
 
         if ($customer_groups_enabled) {
@@ -362,13 +377,15 @@ class ProductHelper extends BaseHelper
             foreach ($currencies as $currency_code) {
                 $customData[$field][$currency_code] = [];
 
-                $price = (double) $this->catalogHelper->getTaxPrice($product, $product->getPrice(), $with_tax, null, null, null, $product->getStore(), null);
+                $price = $priceInfo->getPrice('regular_price')->getValue();
+                $price = (double) $this->catalogHelper->getTaxPrice($product, $price, $with_tax, null, null, null, $product->getStore(), null);
                 $price = $this->currencyDirectory->currencyConvert($price, $baseCurrencyCode, $currency_code);
 
                 $customData[$field][$currency_code]['default'] = $price;
                 $customData[$field][$currency_code]['default_formated'] = $this->formatPrice($price, false, $currency_code);
 
-                $special_price = (double) $this->catalogHelper->getTaxPrice($product, $product->getFinalPrice(), $with_tax, null, null, null, $product->getStore(), null);
+                $special_price = $priceInfo->getPrice('final_price')->getValue();
+                $special_price = (double) $this->catalogHelper->getTaxPrice($product, $special_price, $with_tax, null, null, null, $product->getStore(), null);
                 $special_price = $this->currencyDirectory->currencyConvert($special_price, $baseCurrencyCode, $currency_code);
 
                 if ($customer_groups_enabled) {
@@ -785,13 +802,13 @@ class ProductHelper extends BaseHelper
 
         $this->handlePrice($product, $sub_products, $customData);
 
+        $customData['type_id'] = $type;
+
         $transport = new DataObject($customData);
         $this->eventManager->dispatch('algolia_subproducts_index', ['custom_data' => $transport, 'sub_products' => $sub_products]);
         $customData = $transport->getData();
 
         $customData = array_merge($customData, $defaultData);
-
-        $customData['type_id'] = $type;
 
         $this->castProductObject($customData);
 
@@ -800,7 +817,7 @@ class ProductHelper extends BaseHelper
         return $customData;
     }
 
-    private function explodeSynomyms($synonyms)
+    private function explodeSynonyms($synonyms)
     {
         return array_map('trim', explode(',', $synonyms));
     }

@@ -32,6 +32,8 @@ class Data
     protected $emulation;
     protected $resource;
 
+    private $emulationRuns = false;
+
     public function __construct(AlgoliaHelper $algoliaHelper,
                                 ConfigHelper $configHelper,
                                 ProductHelper $producthelper,
@@ -83,7 +85,7 @@ class Data
         $this->algoliaHelper->deleteIndex($this->categoryHelper->getIndexName($storeId));
     }
 
-    public function deleteObjects($ids, $indexName)
+    public function deleteObjects($storeId, $ids, $indexName)
     {
         $this->algoliaHelper->deleteObjects($ids, $indexName);
     }
@@ -164,9 +166,9 @@ class Data
             return;
         }
 
-        $additionnal_sections = $this->configHelper->getAutocompleteSections();
+        $additional_sections = $this->configHelper->getAutocompleteSections();
 
-        foreach ($additionnal_sections as $section) {
+        foreach ($additional_sections as $section) {
             if ($section['name'] === 'products' || $section['name'] === 'categories' || $section['name'] === 'pages' || $section['name'] === 'suggestions') {
                 continue;
             }
@@ -523,7 +525,7 @@ class Data
         }
 
         if ($this->productHelper->isAttributeEnabled($additionalAttributes, 'rating_summary')) {
-            $collection->joinField('rating_summary', $reviewTableName, 'rating_summary', 'entity_pk_value=entity_id', '{{table}}.store_id=' . $storeId, 'left');
+            $collection->getSelect()->columns('(SELECT MAX(rating_summary) FROM ' . $reviewTableName . ' AS o WHERE o.entity_pk_value = e.entity_id AND o.store_id = '.$storeId.') as rating_summary');
         }
 
         $this->logger->start('LOADING ' . $this->logger->getStoreName($storeId) . ' collection page ' . $page . ', pageSize ' . $pageSize);
@@ -571,9 +573,14 @@ class Data
 
     public function startEmulation($storeId)
     {
+        if ($this->emulationRuns === true) {
+            return;
+        }
+
         $this->logger->start('START EMULATION');
 
         $this->emulation->startEnvironmentEmulation($storeId);
+        $this->emulationRuns = true;
 
         $this->logger->stop('START EMULATION');
     }
@@ -583,6 +590,7 @@ class Data
         $this->logger->start('STOP EMULATION');
 
         $this->emulation->stopEnvironmentEmulation();
+        $this->emulationRuns = false;
 
         $this->logger->stop('STOP EMULATION');
     }

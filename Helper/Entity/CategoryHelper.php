@@ -48,6 +48,7 @@ class CategoryHelper extends BaseHelper
             'customRanking'           => $customRankingsArr,
             'unretrievableAttributes' => $unretrievableAttributes,
         ];
+
         // Additional index settings from event observer
         $transport = new DataObject($indexSettings);
         $this->eventManager->dispatch('algolia_index_settings_prepare', [
@@ -57,7 +58,7 @@ class CategoryHelper extends BaseHelper
         );
         $indexSettings = $transport->getData();
 
-        $this->algoliaHelper->mergeSettings($this->getIndexName($storeId), $indexSettings);
+        $indexSettings = $this->algoliaHelper->mergeSettings($this->getIndexName($storeId), $indexSettings);
 
         return $indexSettings;
     }
@@ -88,9 +89,12 @@ class CategoryHelper extends BaseHelper
             ->addUrlRewriteToResult()
             ->addIsActiveFilter()
             ->setStoreId($storeId)
-            ->addAttributeToFilter('include_in_menu', '1')
             ->addAttributeToSelect(array_merge(['name'], $additionalAttr))
             ->addFieldToFilter('level', ['gt' => 1]);
+
+        if (!$this->config->showCatsNotIncludedInNavigation()) {
+            $categories->addAttributeToFilter('include_in_menu', 1);
+        }
 
         if ($categoryIds) {
             $categories->addFieldToFilter('entity_id', ['in' => $categoryIds]);
@@ -172,10 +176,10 @@ class CategoryHelper extends BaseHelper
         foreach ($this->config->getCategoryAdditionalAttributes($storeId) as $attribute) {
             $value = $category->getData($attribute['attribute']);
 
-            $attribute_ressource = $category->getResource()->getAttribute($attribute['attribute']);
+            $attribute_resource = $category->getResource()->getAttribute($attribute['attribute']);
 
-            if ($attribute_ressource) {
-                $value = $attribute_ressource->getFrontend()->getValue($category);
+            if ($attribute_resource) {
+                $value = $attribute_resource->getFrontend()->getValue($category);
             }
 
             if (isset($data[$attribute['attribute']])) {

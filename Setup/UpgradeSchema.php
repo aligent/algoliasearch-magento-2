@@ -23,7 +23,7 @@ class UpgradeSchema implements UpgradeSchemaInterface
             $table->addColumn('method', $table::TYPE_TEXT, 50, ['nullable' => false]);
             $table->addColumn('data', $table::TYPE_TEXT, 5000, ['nullable' => false]);
             $table->addColumn('max_retries', $table::TYPE_INTEGER, 11, ['nullable' => false, 'default' => 3]);
-            $table->addColumn('retries', $table::TYPE_INTEGER, 11, ['nullable' => false, 'defualt' => 0]);
+            $table->addColumn('retries', $table::TYPE_INTEGER, 11, ['nullable' => false, 'default' => 0]);
             $table->addColumn('error_log', $table::TYPE_TEXT, null, ['nullable' => false]);
             $table->addColumn('data_size', $table::TYPE_INTEGER, 11, ['nullable' => true, 'default' => null]);
 

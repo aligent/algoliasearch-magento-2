@@ -58,7 +58,7 @@ requirejs(['algoliaBundle'], function(algoliaBundle) {
 			}
 		});
 		
-		search.client.addAlgoliaAgent('Magento integration (' + algoliaConfig.extensionVersion + ')');
+		search.client.addAlgoliaAgent('Magento2 integration (' + algoliaConfig.extensionVersion + ')');
 		
 		/**
 		 * Custom widget - this widget is used to refine results for search page or catalog page
@@ -214,9 +214,6 @@ requirejs(['algoliaBundle'], function(algoliaBundle) {
 			var name = facet.attribute;
 			
 			if (name === 'categories') {
-				if (algoliaConfig.isCategoryPage) {
-					return;
-				}
 				name = 'categories.level0';
 			}
 			
@@ -264,7 +261,7 @@ requirejs(['algoliaBundle'], function(algoliaBundle) {
 					hierarchical_levels.push('categories.level' + l.toString());
 				
 				var hierarchicalMenuParams = {
-					container: facet.wrapper.appendChild(document.createElement('div')),
+					container: facet.wrapper.appendChild(createISWidgetContainer(facet.attribute)),
 					attributes: hierarchical_levels,
 					separator: ' /// ',
 					alwaysGetRootLevel: true,
@@ -284,15 +281,11 @@ requirejs(['algoliaBundle'], function(algoliaBundle) {
 					'<span class="{{cssClasses.count}}">{{#helpers.formatNumber}}{{count}}{{/helpers.formatNumber}}</span></a>' +
 					'</div>';
 				
-				if (algoliaConfig.request.path.length > 0) {
-					hierarchicalMenuParams.rootPath = algoliaConfig.request.path;
-				}
-				
 				return algoliaBundle.instantsearch.widgets.hierarchicalMenu(hierarchicalMenuParams);
 			}
 		};
 		
-		/** Add all facet widgets to instatnsearch object **/
+		/** Add all facet widgets to instantsearch object **/
 		
 		window.getFacetWidget = function (facet, templates) {
 			
@@ -300,7 +293,7 @@ requirejs(['algoliaBundle'], function(algoliaBundle) {
 				delete templates.item;
 				
 				return algoliaBundle.instantsearch.widgets.priceRanges({
-					container: facet.wrapper.appendChild(document.createElement('div')),
+					container: facet.wrapper.appendChild(createISWidgetContainer(facet.attribute)),
 					attributeName: facet.attribute,
 					labels: {
 						currency: algoliaConfig.currencySymbol,
@@ -316,7 +309,7 @@ requirejs(['algoliaBundle'], function(algoliaBundle) {
 			
 			if (facet.type === 'conjunctive') {
 				return algoliaBundle.instantsearch.widgets.refinementList({
-					container: facet.wrapper.appendChild(document.createElement('div')),
+					container: facet.wrapper.appendChild(createISWidgetContainer(facet.attribute)),
 					attributeName: facet.attribute,
 					limit: algoliaConfig.maxValuesPerFacet,
 					operator: 'and',
@@ -329,7 +322,7 @@ requirejs(['algoliaBundle'], function(algoliaBundle) {
 			
 			if (facet.type === 'disjunctive') {
 				return algoliaBundle.instantsearch.widgets.refinementList({
-					container: facet.wrapper.appendChild(document.createElement('div')),
+					container: facet.wrapper.appendChild(createISWidgetContainer(facet.attribute)),
 					attributeName: facet.attribute,
 					limit: algoliaConfig.maxValuesPerFacet,
 					operator: 'or',
@@ -344,7 +337,7 @@ requirejs(['algoliaBundle'], function(algoliaBundle) {
 				delete templates.item;
 				
 				return algoliaBundle.instantsearch.widgets.rangeSlider({
-					container: facet.wrapper.appendChild(document.createElement('div')),
+					container: facet.wrapper.appendChild(createISWidgetContainer(facet.attribute)),
 					attributeName: facet.attribute,
 					templates: templates,
 					cssClasses: {
@@ -404,6 +397,10 @@ requirejs(['algoliaBundle'], function(algoliaBundle) {
 			}
 			
 			search.start();
+			
+			if (algoliaConfig.request.path.length > 0) {
+				search.helper.toggleRefine('categories.level0', algoliaConfig.request.path).search();
+			}
 			
 			handleInputCrossInstant($(instant_selector));
 			
