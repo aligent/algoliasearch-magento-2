@@ -112,10 +112,6 @@ class ProductHelper extends BaseHelper
             $products = $products->addAttributeToFilter('visibility', ['in' => $this->visibility->getVisibleInSearchIds()]);
         }
 
-        if (false === $this->config->getShowOutOfStock($storeId)) {
-            $this->stock->addInStockFilterToCollection($products);
-        }
-
         /* @noinspection PhpUnnecessaryFullyQualifiedNameInspection */
         $products = $products->addFinalPrice()
             ->addAttributeToSelect('special_from_date')
@@ -696,9 +692,7 @@ class ProductHelper extends BaseHelper
         }
 
         if (false === isset($defaultData['in_stock'])) {
-            $stockItem = $this->stockRegistry->getStockItem($product->getId());
-
-            $customData['in_stock'] = $stockItem && (int) $stockItem->getIsInStock();
+            $customData['in_stock'] = $this->getProductIsInStock($product);
         }
 
         // skip default calculation if we have provided these attributes via the observer in $defaultData
@@ -739,7 +733,7 @@ class ProductHelper extends BaseHelper
 
                         /** @var Product $sub_product */
                         foreach ($sub_products as $sub_product) {
-                            $isInStock = (int) $this->stockRegistry->getStockItem($sub_product->getId())->getIsInStock();
+                            $isInStock = $this->getProductIsInStock($sub_product);
 
                             if ($isInStock == false && $this->config->indexOutOfStockOptions($product->getStoreId()) == false) {
                                 continue;
@@ -812,6 +806,24 @@ class ProductHelper extends BaseHelper
         $this->logger->stop('CREATE RECORD ' . $product->getId() . ' ' . $this->logger->getStoreName($product->getStoreId()));
 
         return $customData;
+    }
+
+    public function getProductIsInStock($product, $websiteId = null)
+    {
+        $stockItem = $this->getProductStockItem($product, $websiteId);
+        if (!$stockItem->getId()) {
+            return false;
+        } else {
+            return $stockItem->getIsInStock();
+        }
+    }
+
+    protected function getProductStockItem($product, $websiteId = null)
+    {
+        if ($websiteId == null) {
+            $websiteId = $this->storeManager->getStore($product->getStoreId())->getWebsiteId();
+        }
+        return $this->stockRegistry->getStockItem($product->getId(), $websiteId);
     }
 
     private function explodeSynonyms($synonyms)
