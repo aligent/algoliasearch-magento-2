@@ -2,6 +2,7 @@
 
 namespace Algolia\AlgoliaSearch\Setup;
 
+use Magento\Framework\DB\Ddl\Table;
 use Magento\Framework\Setup\ModuleContextInterface;
 use Magento\Framework\Setup\SchemaSetupInterface;
 use Magento\Framework\Setup\UpgradeSchemaInterface;
@@ -28,6 +29,18 @@ class UpgradeSchema implements UpgradeSchemaInterface
             $table->addColumn('data_size', $table::TYPE_INTEGER, 11, ['nullable' => true, 'default' => null]);
 
             $connection->createTable($table);
+        }
+
+        if (version_compare($context->getVersion(), '1.1.0') < 0) {
+            $connection = $setup->getConnection();
+            $connection->changeColumn(
+                $setup->getTable('algoliasearch_queue'),
+                'data',
+                'data',
+                [
+                    'type' => Table::TYPE_TEXT,
+                    'length' => '2M',
+                ]);
         }
 
         $setup->endSetup();

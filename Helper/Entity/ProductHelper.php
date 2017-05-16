@@ -6,6 +6,7 @@ use Algolia\AlgoliaSearch\Helper\Image;
 use Magento\Catalog\Model\Product;
 use Magento\Directory\Model\Currency;
 use Magento\Framework\DataObject;
+use Magento\Framework\Pricing\PriceCurrencyInterface;
 use Magento\Tax\Model\Config as TaxConfig;
 
 class ProductHelper extends BaseHelper
@@ -118,6 +119,7 @@ class ProductHelper extends BaseHelper
 
         /* @noinspection PhpUnnecessaryFullyQualifiedNameInspection */
         $products = $products->addFinalPrice()
+            ->addAttributeToSelect('special_price')
             ->addAttributeToSelect('special_from_date')
             ->addAttributeToSelect('special_to_date')
             ->addAttributeToSelect('visibility')
@@ -150,16 +152,16 @@ class ProductHelper extends BaseHelper
 
     public function setSettings($storeId, $saveToTmpIndicesToo = false)
     {
-        $attributesToIndex = [];
+        $searchableAttributes = [];
         $unretrievableAttributes = [];
         $attributesForFaceting = [];
 
         foreach ($this->getAdditionalAttributes() as $attribute) {
             if ($attribute['searchable'] == '1') {
                 if ($attribute['order'] == 'ordered') {
-                    $attributesToIndex[] = $attribute['attribute'];
+                    $searchableAttributes[] = $attribute['attribute'];
                 } else {
-                    $attributesToIndex[] = 'unordered(' . $attribute['attribute'] . ')';
+                    $searchableAttributes[] = 'unordered(' . $attribute['attribute'] . ')';
                 }
             }
 
@@ -168,7 +170,7 @@ class ProductHelper extends BaseHelper
             }
 
             if ($attribute['attribute'] == 'categories') {
-                $attributesToIndex[] = $attribute['order'] == 'ordered' ? 'categories_without_path' : 'unordered(categories_without_path)';
+                $searchableAttributes[] = $attribute['order'] == 'ordered' ? 'categories_without_path' : 'unordered(categories_without_path)';
             }
         }
 
@@ -206,8 +208,12 @@ class ProductHelper extends BaseHelper
             $customRankingsArr[] = $ranking['order'] . '(' . $ranking['attribute'] . ')';
         }
 
+        if ($this->config->replaceCategories($storeId) && !in_array('categories', $attributesForFaceting, true)) {
+            $attributesForFaceting[] = 'categories';
+        }
+
         $indexSettings = [
-            'attributesToIndex'       => array_values(array_unique($attributesToIndex)),
+            'searchableAttributes'    => array_values(array_unique($searchableAttributes)),
             'customRanking'           => $customRankingsArr,
             'unretrievableAttributes' => $unretrievableAttributes,
             'attributesForFaceting'   => $attributesForFaceting,
@@ -237,60 +243,15 @@ class ProductHelper extends BaseHelper
         $sortingIndices = $this->config->getSortingIndices($storeId);
 
         if ($isInstantSearchEnabled === true && count($sortingIndices) > 0) {
-            $replicas = [];
-
-            foreach ($sortingIndices as $values) {
-                if ($this->config->isCustomerGroupsEnabled($storeId)) {
-                    if ($values['attribute'] === 'price') {
-                        $groupCollection = $this->objectManager->create('Magento\Customer\Model\ResourceModel\Group\Collection');
-
-                        foreach ($groupCollection as $group) {
-                            $group_id = (int) $group->getData('customer_group_id');
-
-                            $suffix_index_name = 'group_' . $group_id;
-
-                            $replicas[] = $this->getIndexName($storeId) . '_' . $values['attribute'] . '_' . $suffix_index_name . '_' . $values['sort'];
-                        }
-                    }
-                } else {
-                    if ($values['attribute'] === 'price') {
-                        $replicas[] = $this->getIndexName($storeId) . '_' . $values['attribute'] . '_default_' . $values['sort'];
-                    } else {
-                        $replicas[] = $this->getIndexName($storeId) . '_' . $values['attribute'] . '_' . $values['sort'];
-                    }
-                }
-            }
+            $replicas = array_values(array_map(function($sortingIndex) {
+                return $sortingIndex['name'];
+            }, $sortingIndices));
 
             $this->algoliaHelper->setSettings($this->getIndexName($storeId), ['replicas' => $replicas]);
 
             foreach ($sortingIndices as $values) {
-                if ($this->config->isCustomerGroupsEnabled($storeId)) {
-                    if (strpos($values['attribute'], 'price') !== false) {
-                        $groupCollection = $this->objectManager->create('Magento\Customer\Model\ResourceModel\Group\Collection');
-
-                        foreach ($groupCollection as $group) {
-                            $group_id = (int) $group->getData('customer_group_id');
-
-                            $suffix_index_name = 'group_' . $group_id;
-
-                            $sort_attribute = strpos($values['attribute'], 'price') !== false ? $values['attribute'] . '.' . $currencies[0] . '.' . $suffix_index_name : $values['attribute'];
-
-                            $mergeSettings['ranking'] = [$values['sort'] . '(' . $sort_attribute . ')', 'typo', 'geo', 'words', 'proximity', 'attribute', 'exact', 'custom'];
-
-                            $this->algoliaHelper->setSettings($this->getIndexName($storeId) . '_' . $values['attribute'] . '_' . $suffix_index_name . '_' . $values['sort'], $mergeSettings);
-                        }
-                    }
-                } else {
-                    $sort_attribute = strpos($values['attribute'], 'price') !== false ? $values['attribute'] . '.' . $currencies[0] . '.' . 'default' : $values['attribute'];
-
-                    $mergeSettings['ranking'] = [$values['sort'] . '(' . $sort_attribute . ')', 'typo', 'geo', 'words', 'proximity', 'attribute', 'exact', 'custom'];
-
-                    if ($values['attribute'] === 'price') {
-                        $this->algoliaHelper->setSettings($this->getIndexName($storeId) . '_' . $values['attribute'] . '_default_' . $values['sort'], $mergeSettings);
-                    } else {
-                        $this->algoliaHelper->setSettings($this->getIndexName($storeId) . '_' . $values['attribute'] . '_' . $values['sort'], $mergeSettings);
-                    }
-                }
+                $mergeSettings['ranking'] = $values['ranking'];
+                $this->algoliaHelper->setSettings($values['name'], $mergeSettings);
             }
         }
 
@@ -335,100 +296,104 @@ class ProductHelper extends BaseHelper
         return ['price' => false, 'price_with_tax' => true];
     }
 
-    protected function formatPrice($price, $includeContainer, $currency_code)
-    {
-        if (!isset(static::$_currencies[$currency_code])) {
-            static::$_currencies[$currency_code] = $this->currencyFactory->create()->load($currency_code);
-        }
-
-        /** @var Currency $currency */
-        $currency = static::$_currencies[$currency_code];
-
-        if ($currency) {
-            return $currency->format($price, [], $includeContainer);
-        }
-
-        return $price;
-    }
-
-    protected function handlePrice(Product &$product, $sub_products, &$customData)
+    protected function handlePrice(Product &$product, $subProducts, &$customData)
     {
         $store = $product->getStore();
         $type = $product->getTypeId();
 
         $fields = $this->getFields($store);
 
-        $customer_groups_enabled = $this->config->isCustomerGroupsEnabled($product->getStoreId());
+        $areCustomersGroupsEnabled = $this->config->isCustomerGroupsEnabled($product->getStoreId());
 
-        $currencies = $this->currencyHelper->getConfigAllowCurrencies();
+        $currencies = $store->getAvailableCurrencyCodes();
         $baseCurrencyCode = $store->getBaseCurrencyCode();
-
-        $priceInfo = $product->getPriceInfo();
 
         $groups = [];
 
-        if ($customer_groups_enabled) {
+        if ($areCustomersGroupsEnabled) {
             $groups = $this->objectManager->create('Magento\Customer\Model\ResourceModel\Group\Collection');
         }
 
-        foreach ($fields as $field => $with_tax) {
+        foreach ($fields as $field => $withTax) {
             $customData[$field] = [];
 
-            foreach ($currencies as $currency_code) {
-                $customData[$field][$currency_code] = [];
+            foreach ($currencies as $currencyCode) {
+                $customData[$field][$currencyCode] = [];
 
-                $price = $priceInfo->getPrice('regular_price')->getValue();
-                $price = (double) $this->catalogHelper->getTaxPrice($product, $price, $with_tax, null, null, null, $product->getStore(), null);
-                $price = $this->currencyDirectory->currencyConvert($price, $baseCurrencyCode, $currency_code);
+                $price = $product->getPrice();
+                if ($currencyCode !== $baseCurrencyCode) {
+                    $price = $this->priceCurrency->convert($price, $store, $currencyCode);
+                }
 
-                $customData[$field][$currency_code]['default'] = $price;
-                $customData[$field][$currency_code]['default_formated'] = $this->formatPrice($price, false, $currency_code);
+                $price = (double) $this->catalogHelper->getTaxPrice($product, $price, $withTax, null, null, null, $product->getStore(), null);
 
-                $special_price = $priceInfo->getPrice('final_price')->getValue();
-                $special_price = (double) $this->catalogHelper->getTaxPrice($product, $special_price, $with_tax, null, null, null, $product->getStore(), null);
-                $special_price = $this->currencyDirectory->currencyConvert($special_price, $baseCurrencyCode, $currency_code);
+                $customData[$field][$currencyCode]['default'] = $this->priceCurrency->round($price);
+                $customData[$field][$currencyCode]['default_formated'] = $this->priceCurrency->format($price, false, PriceCurrencyInterface::DEFAULT_PRECISION, $store, $currencyCode);
 
-                if ($customer_groups_enabled) {
-                    // If fetch special price for groups
+                $specialPrices = [];
+                $specialPrices[] = (double) $this->rule->getRulePrice(new \DateTime(), $store->getWebsiteId(), 0, $product->getId()); // The price with applied catalog rules
+                $specialPrices[] = (double) $product->getFinalPrice(); // The product's special price
 
+                $specialPrices = array_filter($specialPrices, function($price) {
+                    return $price > 0;
+                });
+
+                $specialPrice = false;
+                if (!empty($specialPrices)) {
+                    $specialPrice = min($specialPrices);
+                }
+
+                if ($specialPrice) {
+                    if ($currencyCode !== $baseCurrencyCode) {
+                        $specialPrice = $this->priceCurrency->convert($specialPrice, $store, $currencyCode);
+                        $specialPrice = $this->priceCurrency->round($specialPrice);
+                    }
+
+                    $specialPrice = (double)$this->catalogHelper->getTaxPrice($product, $specialPrice, $withTax, null,
+                        null, null, $product->getStore(), null);
+                }
+
+                if ($areCustomersGroupsEnabled) {
                     foreach ($groups as $group) {
-                        $group_id = (int) $group->getData('customer_group_id');
-                        $product->setCustomerGroupId($group_id);
+                        $groupId = (int) $group->getData('customer_group_id');
 
-                        $discounted_price = $product->getPriceModel()->getFinalPrice(1, $product);
-                        $discounted_price = $this->currencyDirectory->currencyConvert($discounted_price, $baseCurrencyCode, $currency_code);
+                        $product->setCustomerGroupId($groupId);
 
-                        if ($discounted_price !== false) {
-                            $customData[$field][$currency_code]['group_' . $group_id] = (double) $this->catalogHelper->getTaxPrice($product, $discounted_price, $with_tax, null, null, null, $product->getStore(), null);
-                            $customData[$field][$currency_code]['group_' . $group_id] = $this->currencyDirectory->currencyConvert($customData[$field][$currency_code]['group_' . $group_id], $baseCurrencyCode, $currency_code);
-                            $customData[$field][$currency_code]['group_' . $group_id . '_formated'] = $this->formatPrice($customData[$field][$currency_code]['group_' . $group_id], false, $currency_code);
+                        $discountedPrice = (double) $product->getPriceModel()->getFinalPrice(1, $product);
+                        if ($currencyCode !== $baseCurrencyCode) {
+                            $discountedPrice = $this->priceCurrency->convert($discountedPrice, $store, $currencyCode);
+                        }
+
+                        if ($discountedPrice !== false) {
+                            $customData[$field][$currencyCode]['group_' . $groupId] = (double) $this->catalogHelper->getTaxPrice($product, $discountedPrice, $withTax, null, null, null, $product->getStore(), null);
+                            $customData[$field][$currencyCode]['group_' . $groupId . '_formated'] = $this->priceCurrency->format($customData[$field][$currencyCode]['group_' . $groupId], false, PriceCurrencyInterface::DEFAULT_PRECISION, $store, $currencyCode);
                         } else {
-                            $customData[$field][$currency_code]['group_' . $group_id] = $customData[$field][$currency_code]['default'];
-                            $customData[$field][$currency_code]['group_' . $group_id . '_formated'] = $customData[$field][$currency_code]['default_formated'];
+                            $customData[$field][$currencyCode]['group_' . $groupId] = $customData[$field][$currencyCode]['default'];
+                            $customData[$field][$currencyCode]['group_' . $groupId . '_formated'] = $customData[$field][$currencyCode]['default_formated'];
                         }
                     }
 
                     $product->setCustomerGroupId(null);
                 }
 
-                $customData[$field][$currency_code]['special_from_date'] = strtotime($product->getSpecialFromDate());
-                $customData[$field][$currency_code]['special_to_date'] = strtotime($product->getSpecialToDate());
+                $customData[$field][$currencyCode]['special_from_date'] = strtotime($product->getSpecialFromDate());
+                $customData[$field][$currencyCode]['special_to_date'] = strtotime($product->getSpecialToDate());
 
-                if ($customer_groups_enabled) {
+                if ($areCustomersGroupsEnabled) {
                     foreach ($groups as $group) {
-                        $group_id = (int) $group->getData('customer_group_id');
+                        $groupId = (int) $group->getData('customer_group_id');
 
-                        if ($special_price && $special_price < $customData[$field][$currency_code]['group_' . $group_id]) {
-                            $customData[$field][$currency_code]['group_' . $group_id] = $special_price;
-                            $customData[$field][$currency_code]['group_' . $group_id . '_formated'] = $this->formatPrice($special_price, false, $currency_code);
+                        if ($specialPrice && $specialPrice < $customData[$field][$currencyCode]['group_' . $groupId]) {
+                            $customData[$field][$currencyCode]['group_' . $groupId] = $specialPrice;
+                            $customData[$field][$currencyCode]['group_' . $groupId . '_formated'] = $this->priceCurrency->format($specialPrice, false, PriceCurrencyInterface::DEFAULT_PRECISION, $store, $currencyCode);
                         }
                     }
                 } else {
-                    if ($special_price && $special_price < $customData[$field][$currency_code]['default']) {
-                        $customData[$field][$currency_code]['default_original_formated'] = $customData[$field][$currency_code]['default_formated'];
+                    if ($specialPrice && $specialPrice < $customData[$field][$currencyCode]['default']) {
+                        $customData[$field][$currencyCode]['default_original_formated'] = $customData[$field][$currencyCode]['default_formated'];
 
-                        $customData[$field][$currency_code]['default'] = $special_price;
-                        $customData[$field][$currency_code]['default_formated'] = $this->formatPrice($special_price, false, $currency_code);
+                        $customData[$field][$currencyCode]['default'] = $this->priceCurrency->round($specialPrice);
+                        $customData[$field][$currencyCode]['default_formated'] = $this->priceCurrency->format($specialPrice, false, PriceCurrencyInterface::DEFAULT_PRECISION, $store, $currencyCode);
                     }
                 }
 
@@ -437,15 +402,14 @@ class ProductHelper extends BaseHelper
                     $max = 0;
 
                     if ($type == 'bundle') {
-                        $_priceModel = $product->getPriceModel();
-
-                        list($min, $max) = $_priceModel->getTotalPrices($product, null, $with_tax, true);
+                        list($min, $max) = $product->getPriceModel()->getTotalPrices($product, null, $withTax, true);
                     }
 
                     if ($type == 'grouped' || $type == 'configurable') {
-                        if (count($sub_products) > 0) {
-                            foreach ($sub_products as $sub_product) {
-                                $price = (double) $this->catalogHelper->getTaxPrice($product, $sub_product->getFinalPrice(), $with_tax, null, null, null, $product->getStore(), null);
+                        if (count($subProducts) > 0) {
+                            /** @var Product $subProduct */
+                            foreach ($subProducts as $subProduct) {
+                                $price = (double) $this->catalogHelper->getTaxPrice($product, $subProduct->getFinalPrice(), $withTax, null, null, null, $product->getStore(), null);
 
                                 $min = min($min, $price);
                                 $max = max($max, $price);
@@ -456,54 +420,64 @@ class ProductHelper extends BaseHelper
                     }
 
                     if ($min != $max) {
-                        $min = $this->currencyDirectory->currencyConvert($min, $baseCurrencyCode, $currency_code);
-                        $max = $this->currencyDirectory->currencyConvert($max, $baseCurrencyCode, $currency_code);
+                        if ($currencyCode !== $baseCurrencyCode) {
+                            $min = $this->priceCurrency->convert($min, $store, $currencyCode);
+                        }
 
-                        $dashed_format = $this->formatPrice($min, false, $currency_code) . ' - ' . $this->formatPrice($max, false, $currency_code);
+                        if ($currencyCode !== $baseCurrencyCode) {
+                            $max = $this->priceCurrency->convert($max, $store, $currencyCode);
+                        }
 
-                        if (isset($customData[$field][$currency_code]['default_original_formated']) === false || $min <= $customData[$field][$currency_code]['default']) {
-                            $customData[$field][$currency_code]['default_formated'] = $dashed_format;
+                        $dashedFormat =
+                            $this->priceCurrency->format($min, false, PriceCurrencyInterface::DEFAULT_PRECISION, $store, $currencyCode)
+                            . ' - ' .
+                            $this->priceCurrency->format($max, false, PriceCurrencyInterface::DEFAULT_PRECISION, $store, $currencyCode);
+
+                        if (isset($customData[$field][$currencyCode]['default_original_formated']) === false || $min <= $customData[$field][$currencyCode]['default']) {
+                            $customData[$field][$currencyCode]['default_formated'] = $dashedFormat;
 
                             //// Do not keep special price that is already taken into account in min max
                             unset($customData['price']['special_from_date']);
                             unset($customData['price']['special_to_date']);
                             unset($customData['price']['default_original_formated']);
 
-                            $customData[$field][$currency_code]['default'] = 0; // will be reset just after
+                            $customData[$field][$currencyCode]['default'] = 0; // will be reset just after
                         }
 
-                        if ($customer_groups_enabled) {
+                        if ($areCustomersGroupsEnabled) {
                             foreach ($groups as $group) {
-                                $group_id = (int) $group->getData('customer_group_id');
+                                $groupId = (int) $group->getData('customer_group_id');
 
-                                if ($min != $max && $min <= $customData[$field][$currency_code]['group_' . $group_id]) {
-                                    $customData[$field][$currency_code]['group_' . $group_id] = 0;
-                                    $customData[$field][$currency_code]['group_' . $group_id . '_formated'] = $dashed_format;
+                                if ($min != $max && $min <= $customData[$field][$currencyCode]['group_' . $groupId]) {
+                                    $customData[$field][$currencyCode]['group_' . $groupId] = 0;
+                                    $customData[$field][$currencyCode]['group_' . $groupId . '_formated'] = $dashedFormat;
                                 }
                             }
                         }
                     }
 
-                    if ($customData[$field][$currency_code]['default'] == 0) {
-                        $customData[$field][$currency_code]['default'] = $min;
+                    if ($customData[$field][$currencyCode]['default'] == 0) {
+                        $customData[$field][$currencyCode]['default'] = $min;
 
                         if ($min === $max) {
-                            $min = $this->currencyDirectory->currencyConvert($min, $baseCurrencyCode, $currency_code);
+                            if ($currencyCode !== $baseCurrencyCode) {
+                                $min = $this->priceCurrency->convert($min, $store, $currencyCode);
+                            }
 
-                            $customData[$field][$currency_code]['default'] = $min;
-                            $customData[$field][$currency_code]['default_formated'] = $this->formatPrice($min, false, $currency_code);
+                            $customData[$field][$currencyCode]['default'] = $min;
+                            $customData[$field][$currencyCode]['default_formated'] = $this->priceCurrency->format($min, false, PriceCurrencyInterface::DEFAULT_PRECISION, $store, $currencyCode);
                         }
                     }
 
-                    if ($customer_groups_enabled) {
+                    if ($areCustomersGroupsEnabled) {
                         foreach ($groups as $group) {
-                            $group_id = (int) $group->getData('customer_group_id');
+                            $groupId = (int) $group->getData('customer_group_id');
 
-                            if ($customData[$field][$currency_code]['group_' . $group_id] == 0) {
-                                $customData[$field][$currency_code]['group_' . $group_id] = $min;
+                            if ($customData[$field][$currencyCode]['group_' . $groupId] == 0) {
+                                $customData[$field][$currencyCode]['group_' . $groupId] = $min;
 
                                 if ($min === $max) {
-                                    $customData[$field][$currency_code]['group_' . $group_id . '_formated'] = $customData[$field][$currency_code]['default_formated'];
+                                    $customData[$field][$currencyCode]['group_' . $groupId . '_formated'] = $customData[$field][$currencyCode]['default_formated'];
                                 }
                             }
                         }
@@ -559,10 +533,14 @@ class ProductHelper extends BaseHelper
         $visibleInCatalog = $this->visibility->getVisibleInCatalogIds();
         $visibleInSearch = $this->visibility->getVisibleInSearchIds();
 
+        $urlParams = [
+            '_secure' => $this->config->useSecureUrlsInFrontend($product->getStoreId()),
+        ];
+
         $customData = [
             'objectID'           => $product->getId(),
             'name'               => $product->getName(),
-            'url'                => $product->getProductUrl(false),
+            'url'                => $product->getUrlModel()->getUrl($product, $urlParams),
             'visibility_search'  => (int) (in_array($visibility, $visibleInSearch)),
             'visibility_catalog' => (int) (in_array($visibility, $visibleInCatalog)),
         ];
@@ -668,7 +646,11 @@ class ProductHelper extends BaseHelper
                 $images = $product->getMediaGalleryImages();
                 if ($images) {
                     foreach ($images as $image) {
-                        $customData['media_gallery'][] = str_replace(['https://', 'http://'], '//', $this->fixPubUrl($image->getUrl()));
+                        $url = $image->getUrl();
+                        $url = $imageHelper->removeProtocol($url);
+                        $url = $imageHelper->removeDoubleSlashes($url);
+
+                        $customData['media_gallery'][] = $url;
                     }
                 }
             }

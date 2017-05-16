@@ -2,6 +2,7 @@
 
 namespace Algolia\AlgoliaSearch\Helper\Entity;
 
+use Algolia\AlgoliaSearch\Helper\Image;
 use Magento\Catalog\Model\Category;
 use Magento\Framework\DataObject;
 
@@ -17,15 +18,15 @@ class CategoryHelper extends BaseHelper
 
     public function getIndexSettings($storeId)
     {
-        $attributesToIndex = [];
+        $searchableAttributes = [];
         $unretrievableAttributes = [];
 
         foreach ($this->config->getCategoryAdditionalAttributes($storeId) as $attribute) {
             if ($attribute['searchable'] == '1') {
                 if ($attribute['order'] == 'ordered') {
-                    $attributesToIndex[] = $attribute['attribute'];
+                    $searchableAttributes[] = $attribute['attribute'];
                 } else {
-                    $attributesToIndex[] = 'unordered(' . $attribute['attribute'] . ')';
+                    $searchableAttributes[] = 'unordered(' . $attribute['attribute'] . ')';
                 }
             }
 
@@ -44,7 +45,7 @@ class CategoryHelper extends BaseHelper
 
         // Default index settings
         $indexSettings = [
-            'attributesToIndex'       => array_values(array_unique($attributesToIndex)),
+            'searchableAttributes'    => array_values(array_unique($searchableAttributes)),
             'customRanking'           => $customRankingsArr,
             'unretrievableAttributes' => $unretrievableAttributes,
         ];
@@ -152,25 +153,32 @@ class CategoryHelper extends BaseHelper
             $path .= $this->getCategoryName($categoryId, $storeId);
         }
 
-        $image_url = null;
+        $imageUrl = null;
         try {
-            $image_url = $category->getImageUrl();
+            $imageUrl = $category->getImageUrl();
         } catch (\Exception $e) { /* no image, no default: not fatal */
         }
+
         $data = [
             'objectID'      => $category->getId(),
             'name'          => $category->getName(),
             'path'          => $path,
             'level'         => $category->getLevel(),
-            'url'           => $category->getUrl(),
+            'url'           => $this->getUrl($category),
             'include_in_menu' => $category->getIncludeInMenu(),
             '_tags'         => ['category'],
             'popularity'    => 1,
             'product_count' => $category->getProductCount(),
         ];
 
-        if (!empty($image_url)) {
-            $data['image_url'] = $image_url;
+        if (!empty($imageUrl)) {
+            /** @var Image $imageHelper */
+            $imageHelper = $this->objectManager->create('Algolia\AlgoliaSearch\Helper\Image');
+
+            $imageUrl = $imageHelper->removeProtocol($imageUrl);
+            $imageUrl = $imageHelper->removeDoubleSlashes($imageUrl);
+
+            $data['image_url'] = $imageUrl;
         }
 
         foreach ($this->config->getCategoryAdditionalAttributes($storeId) as $attribute) {
@@ -211,5 +219,23 @@ class CategoryHelper extends BaseHelper
         }
 
         return self::$_rootCategoryId;
+    }
+
+    private function getUrl(Category $category)
+    {
+        $categoryUrl = $category->getUrl();
+
+        if ($this->config->useSecureUrlsInFrontend($category->getStoreId()) === false) {
+            return $categoryUrl;
+        }
+
+        $unsecureBaseUrl = $category->getUrlInstance()->getBaseUrl(['_secure' => false]);
+        $secureBaseUrl = $category->getUrlInstance()->getBaseUrl(['_secure' => true]);
+
+        if (strpos($categoryUrl, $unsecureBaseUrl) === 0) {
+            return substr_replace($categoryUrl, $secureBaseUrl, 0, mb_strlen($unsecureBaseUrl));
+        }
+
+        return $categoryUrl;
     }
 }

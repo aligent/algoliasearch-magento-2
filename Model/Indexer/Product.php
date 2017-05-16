@@ -62,8 +62,14 @@ class Product implements Magento\Framework\Indexer\ActionInterface, Magento\Fram
         $storeIds = array_keys($this->storeManager->getStores());
 
         foreach ($storeIds as $storeId) {
+            $productsPerPage = $this->configHelper->getNumberOfElementByPage();
+
             if (is_array($productIds) && count($productIds) > 0) {
-                $this->queue->addToQueue($this->fullAction, 'rebuildStoreProductIndex', ['store_id' => $storeId, 'product_ids' => $productIds], count($productIds));
+                foreach (array_chunk($productIds, $productsPerPage) as $chunk) {
+                    $this->queue->addToQueue($this->fullAction, 'rebuildStoreProductIndex',
+                        ['store_id' => $storeId, 'product_ids' => $chunk], count($chunk));
+                }
+
                 continue;
             }
 
@@ -76,7 +82,6 @@ class Product implements Magento\Framework\Indexer\ActionInterface, Magento\Fram
                 $size = max(count($productIds), $size);
             }
 
-            $productsPerPage = $this->configHelper->getNumberOfElementByPage();
             $pages = ceil($size / $productsPerPage);
 
             $this->queue->addToQueue($this->fullAction, 'saveConfigurationToAlgolia', [

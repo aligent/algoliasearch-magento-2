@@ -92,8 +92,6 @@ class Data
 
     public function saveConfigurationToAlgolia($storeId, $useTmpIndex = false)
     {
-        $this->algoliaHelper->resetCredentialsFromConfig();
-
         if (!($this->configHelper->getApplicationID() && $this->configHelper->getAPIKey())) {
             return;
         }
@@ -535,26 +533,42 @@ class Data
         $this->logger->log('Loaded ' . count($collection) . ' products');
         $this->logger->stop('LOADING ' . $this->logger->getStoreName($storeId) . ' collection page ' . $page . ', pageSize ' . $pageSize);
 
-        $index_name = $this->productHelper->getIndexName($storeId, $useTmpIndex);
+        $indexName = $this->productHelper->getIndexName($storeId, $useTmpIndex);
 
         $indexData = $this->getProductsRecords($storeId, $collection, $productIds);
 
         if (!empty($indexData['toIndex'])) {
             $this->logger->start('ADD/UPDATE TO ALGOLIA');
 
-            $this->algoliaHelper->addObjects($indexData['toIndex'], $index_name);
+            $this->algoliaHelper->addObjects($indexData['toIndex'], $indexName);
 
             $this->logger->log('Product IDs: ' . implode(', ', array_keys($indexData['toIndex'])));
             $this->logger->stop('ADD/UPDATE TO ALGOLIA');
         }
 
         if (!empty($indexData['toRemove'])) {
-            $this->logger->start('REMOVE FROM ALGOLIA');
+            $toRealRemove = [];
 
-            $this->algoliaHelper->deleteObjects($indexData['toRemove'], $index_name);
+            if (count($indexData['toRemove']) === 1) {
+                $toRealRemove = $indexData['toRemove'];
+            } else {
+                $indexData['toRemove'] = array_map('strval', $indexData['toRemove']);
+                $objects = $this->algoliaHelper->getObjects($indexName, $indexData['toRemove']);
+                foreach ($objects['results'] as $object) {
+                    if (isset($object['objectID'])) {
+                        $toRealRemove[] = $object['objectID'];
+                    }
+                }
+            }
 
-            $this->logger->log('Product IDs: ' . implode(', ', $indexData['toRemove']));
-            $this->logger->stop('REMOVE FROM ALGOLIA');
+            if (!empty($toRealRemove)) {
+                $this->logger->start('REMOVE FROM ALGOLIA');
+
+                $this->algoliaHelper->deleteObjects($toRealRemove, $indexName);
+
+                $this->logger->log('Product IDs: '.implode(', ', $toRealRemove));
+                $this->logger->stop('REMOVE FROM ALGOLIA');
+            }
         }
 
         unset($indexData);

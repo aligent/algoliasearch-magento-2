@@ -72,8 +72,17 @@ requirejs(['algoliaBundle'], function(algoliaBundle) {
 				return {};
 			},
 			init: function (data) {
+				var page = data.helper.state.page;
+				
 				if (algoliaConfig.request.refinementKey.length > 0) {
 					data.helper.toggleRefine(algoliaConfig.request.refinementKey, algoliaConfig.request.refinementValue);
+				}
+				
+				if (algoliaConfig.areCategoriesInFacets === false && algoliaConfig.request.path.length > 0) {
+					var facet = 'categories.level' + algoliaConfig.request.level;
+
+					data.helper.state.facets.push(facet);
+					data.helper.toggleRefine(facet, algoliaConfig.request.path);
 				}
 				
 				if (algoliaConfig.isCategoryPage) {
@@ -82,6 +91,8 @@ requirejs(['algoliaBundle'], function(algoliaBundle) {
 				else {
 					data.helper.addNumericRefinement('visibility_search', '=', 1);
 				}
+				
+				data.helper.setPage(page);
 			},
 			render: function (data) {
 				if (!algoliaConfig.isSearchPage) {
@@ -398,8 +409,10 @@ requirejs(['algoliaBundle'], function(algoliaBundle) {
 			
 			search.start();
 			
-			if (algoliaConfig.request.path.length > 0) {
-				search.helper.toggleRefine('categories.level0', algoliaConfig.request.path).search();
+			if (algoliaConfig.request.path.length > 0 && algoliaConfig.areCategoriesInFacets === true) {
+				var page = search.helper.state.page;
+				
+				search.helper.toggleRefinement('categories.level0', algoliaConfig.request.path).setPage(page).search();
 			}
 			
 			handleInputCrossInstant($(instant_selector));

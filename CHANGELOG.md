@@ -1,5 +1,21 @@
 # CHANGELOG
 
+## 1.0.10
+
+- Fix IS on replaced category page (#202)
+
+## 1.0.9
+
+- `algoliaBundle` is now loaded only via requireJS (#171)
+- Fixed warning raised by nested emulation (#175)
+- Fixed indexing of secured URLs (#174)
+- Fixed the issue when some products were not indexed due to bad SQL query (#181)
+- `categories` attribute is automatically set as an attribute for faceting when Replace categories is turned on (#184)
+- Fixed set settings on TMP indices (#186)
+- Settings now sends `searchableAttributes` instead of `attributesToIndex` (#187)
+- Fixed IS page when using pagination and refreshing the page (#195)
+- Fixed filters and pagination on category pages (#200)
+
 ## 1.0.8
 
 - Fixed the requireJS issue introduced in 1.0.6, which ended up in administration's JavaScript not working (#168, #169)

@@ -14,7 +14,7 @@ class SuggestionHelper extends BaseHelper
     public function getIndexSettings($storeId)
     {
         return [
-            'attributesToIndex'    => ['query'],
+            'searchableAttributes' => ['query'],
             'customRanking'        => ['desc(popularity)', 'desc(number_of_results)', 'asc(date)'],
             'typoTolerance'        => false,
             'attributesToRetrieve' => ['query'],
